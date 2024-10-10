@@ -6,15 +6,14 @@ import { auth, db } from '../../../firebase-credentials';
 import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore";
 import ProjectSelector from '@/components/ChatPage/ProjectSelector';
 import DocumentSelector from '@/components/ChatPage/DocumentSelector';
-import ProjectInfo from '@/components/ChatPage/ProjectInfo';
+import ProjectInfo, { initialMandatoryTags } from '@/components/ChatPage/ProjectInfo';
 import Chat from '@/components/ChatPage/Chat';
 import UserMenu from '@/components/ChatPage/UserMenu';
 import { v4 as uuidv4 } from 'uuid'; 
-import { initialMandatoryTags } from '@/components/ChatPage/ProjectInfo';
 
 export default function HomePage() {
   const [userData, setUserData] = useState(null);
-  const [selectedDocument, setSelectedDocument] = useState('');
+  const [selectedDocuments, setSelectedDocuments] = useState([]); // Cambiado a array
   const [availablePDFs, setAvailablePDFs] = useState({});
   const [selectedRegion, setSelectedRegion] = useState('Nacionales');
   const [projectInfo, setProjectInfo] = useState([]);
@@ -24,6 +23,7 @@ export default function HomePage() {
   const [isCreatingNewProject, setIsCreatingNewProject] = useState(false);
   const [pendingProjectInfo, setPendingProjectInfo] = useState([]);
   const [threadId, setThreadId] = useState(null); // Nuevo estado para el ID del thread
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false); // Nuevo estado para la generación de etiquetas
   const router = useRouter(); 
 
   useEffect(() => {
@@ -68,71 +68,66 @@ export default function HomePage() {
   }, []);
 
   // Función para manejar la llamada a la función de Firebase y recuperar la respuesta
- // Función para manejar la llamada a la función de Firebase y recuperar la respuesta
-const handleUserQuery = async (question) => {
-  if (!selectedDocument) {
-      console.error("Documento no seleccionado.");
-      return;
-  }
+  const handleUserQuery = async (question) => {
+    if (selectedDocuments.length === 0) {
+        console.error("No se han seleccionado documentos.");
+        return;
+    }
 
-  if (!selectedProject) {
-      console.error("Proyecto no seleccionado.");
-      return;
-  }
+    if (!selectedProject) {
+        console.error("Proyecto no seleccionado.");
+        return;
+    }
 
-  // Verificación de variables antes de construir el body
-  console.log('selectedDocument:', selectedDocument);
-  console.log('projectInfo:', projectInfo);
-  console.log('threadId:', threadId);
-  console.log('selectedProject:', selectedProject);
+    // Verificación de variables antes de construir el body
+    console.log('selectedDocuments:', selectedDocuments);
+    console.log('projectInfo:', projectInfo);
+    console.log('threadId:', threadId);
+    console.log('selectedProject:', selectedProject);
 
-  // Construir el cuerpo de la solicitud con las claves correctas
-  const body = {
-      pregunta: question,
-      etiquetas: projectInfo.map(tag => ({ clave: tag.name, contenido: tag.value })),
-      nombreDocumento: selectedDocument,
-      threadId: threadId,
-      projectId: selectedProject // Añadir el projectId aquí
+    // Construir el cuerpo de la solicitud con las claves correctas
+    const body = {
+        pregunta: question,
+        etiquetas: projectInfo.map(tag => ({ clave: tag.name, contenido: tag.value })),
+        nombreDocumentos: selectedDocuments, // Ahora es un array de documentos
+        threadId: threadId,
+        projectId: selectedProject // Añadir el projectId aquí
+    };
+
+    console.log('Cuerpo de la solicitud (pre-JSON.stringify):', body);
+
+    try {
+        const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/handleUserQuery', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body) // Convertir el cuerpo a JSON
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al obtener la respuesta del servidor.');
+        }
+
+        const data = await response.json();
+        // Actualizar el threadId si es un nuevo hilo creado
+        if (data.threadId && !threadId) {
+            setThreadId(data.threadId);
+        }
+        return data.respuesta;
+
+    } catch (error) {
+        console.error('Error al enviar la consulta:', error);
+        return 'Error al obtener la respuesta.';
+    }
   };
-
-  console.log('Cuerpo de la solicitud (pre-JSON.stringify):', body);
-
-  try {
-      const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/handleUserQuery', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body) // Convertir el cuerpo a JSON
-      });
-
-      if (!response.ok) {
-          throw new Error('Error al obtener la respuesta del servidor.');
-      }
-
-      const data = await response.json();
-      // Actualizar el threadId si es un nuevo hilo creado
-      if (data.threadId && !threadId) {
-          setThreadId(data.threadId);
-      }
-      return data.respuesta;
-
-  } catch (error) {
-      console.error('Error al enviar la consulta:', error);
-      return 'Error al obtener la respuesta.';
-  }
-};
-
-
-
-
-
 
   const handleProjectSelect = async (projectId) => {
     setSelectedProject(projectId);
     setIsProjectInfoUpdated(false);
     setIsCreatingNewProject(false);
     setPendingProjectInfo([]);
+    setThreadId(null); // Reiniciar threadId al cambiar de proyecto
 
     if (!projectId) {
         setProjectInfo([]);
@@ -180,24 +175,23 @@ const handleUserQuery = async (question) => {
     }
   };
 
-
   const handleNewProject = () => {
       setSelectedProject(null);
       setProjectInfo([]);
       setIsProjectInfoUpdated(false);
       setIsCreatingNewProject(true);
       setPendingProjectInfo([]);
+      setThreadId(null); // Reiniciar threadId al crear nuevo proyecto
   };
 
   const handleRegionSelect = (region) => {
     setSelectedRegion(region);
-    setSelectedDocument(''); // Resetea el documento seleccionado al cambiar la región
+    setSelectedDocuments([]); // Resetea los documentos seleccionados al cambiar la región
   };
 
-  const handleDocumentSelect = (doc) => {
-    setSelectedDocument(doc);
+  const handleDocumentSelect = (docs) => {
+    setSelectedDocuments(docs);
   };
-
 
   const createNewProject = async (info) => {
     try {
@@ -270,7 +264,6 @@ const handleUserQuery = async (question) => {
       }
   };
 
-
   const handleUpdateProjectInfo = async (newInfo) => {
     if (!selectedProject && !isCreatingNewProject) {
       const newProjectId = await createNewProject(newInfo);
@@ -298,8 +291,64 @@ const handleUserQuery = async (question) => {
     const respuesta = await handleUserQuery(question);
     // Devuelve la respuesta para que el componente `Chat` la maneje
     return respuesta;
-};
+  };
 
+  // Nueva función para manejar la generación automática de etiquetas
+  const handleGenerateAutomaticTags = async (automaticText) => {
+    if (!automaticText.trim()) {
+        alert('Por favor, ingresa un texto descriptivo del proyecto.');
+        return;
+    }
+
+    setIsGeneratingTags(true);
+
+    try {
+        const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/generateAdditionalTags', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                etiquetasActuales: projectInfo, // Enviamos las etiquetas actuales
+                textoProyecto: automaticText
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al generar etiquetas adicionales.');
+        }
+
+        const data = await response.json();
+        const etiquetasAdicionales = data.etiquetasAdicionales;
+
+        // Mapear etiquetas por defecto
+        const defaultTagNames = initialMandatoryTags.map(tag => tag.name);
+
+        // Actualizar etiquetas por defecto si están vacías
+        const updatedProjectInfo = projectInfo.map(tag => {
+            if (defaultTagNames.includes(tag.name) && (!tag.value || tag.value.trim() === '')) {
+                const generatedTag = etiquetasAdicionales.find(gTag => gTag.name.toLowerCase() === tag.name.toLowerCase());
+                if (generatedTag) {
+                    return { ...tag, value: generatedTag.value };
+                }
+            }
+            return tag;
+        });
+
+        // Añadir las etiquetas generadas que no son de las etiquetas por defecto
+        const customGeneratedTags = etiquetasAdicionales.filter(tag => !defaultTagNames.includes(tag.name));
+        const updatedTags = [...updatedProjectInfo, ...customGeneratedTags];
+
+        setProjectInfo(updatedTags);
+        setIsProjectInfoUpdated(true);
+
+    } catch (error) {
+        console.error('Error al generar etiquetas automáticas:', error);
+        alert('Hubo un error al generar etiquetas automáticas.');
+    } finally {
+        setIsGeneratingTags(false);
+    }
+  };
 
   if (!userData) {
     return <div>Loading...</div>;
@@ -308,13 +357,13 @@ const handleUserQuery = async (question) => {
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden">
         <div className="flex flex-col w-48 bg-[#F4EDE4]">
-        <ProjectSelector 
-          projects={userData.projects} 
-          onSelect={handleProjectSelect} 
-          onNewProject={handleNewProject} 
-          selectedProject={selectedProject}
-        />
-      </div>
+          <ProjectSelector 
+            projects={userData.projects} 
+            onSelect={handleProjectSelect} 
+            onNewProject={handleNewProject} 
+            selectedProject={selectedProject}
+          />
+        </div>
         <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
             <div className="mb-4">
               <DocumentSelector 
@@ -330,14 +379,15 @@ const handleUserQuery = async (question) => {
                 onManualEdit={handleManualEdit} 
                 onSave={handleSaveProject}
                 setIsProjectInfoUpdated={setIsProjectInfoUpdated} 
+                onGenerateAutomaticTags={handleGenerateAutomaticTags} // Pasamos la nueva prop
+                isGenerating={isGeneratingTags} // Pasamos el estado de carga
             />
             <Chat 
                 projectInfo={projectInfo} 
-                selectedDocument={selectedDocument} 
+                selectedDocuments={selectedDocuments} // Cambiado a selectedDocuments
                 onUpdateProjectInfo={handleUpdateProjectInfo} 
                 onSendMessage={handleSendMessage} // Prop para manejar el envío de mensajes
             />
-
         </div>
 
         <div className="absolute top-4 right-4">

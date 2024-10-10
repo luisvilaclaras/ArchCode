@@ -6,7 +6,7 @@ const cors = require('cors')({ origin: true });
 admin.initializeApp();
 
 const ASSISTANT_ID = "asst_eFSYuFil7JgFcgMGPpEwlu27";
-const apiKey = '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';
+const apiKey = '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'; // Reemplaza con tu clave de API de OpenAI
 const db = admin.firestore();
 
 // Función para crear un nuevo hilo
@@ -18,7 +18,7 @@ async function createThread() {
                 messages: [
                     {
                         role: "user",
-                        content: "Hello, I would like to start a conversation."
+                        content: "Hola, me gustaría empezar una conversación."
                     }
                 ]
             },
@@ -61,14 +61,13 @@ async function sendMessage(threadId, content) {
     }
 }
 
-// Función para iniciar un run en el thread
-async function startRun(threadId, instructions) {
+// Función para iniciar un run en el thread sin instrucciones adicionales
+async function startRun(threadId) {
     try {
         const response = await axios.post(
             `https://api.openai.com/v1/threads/${threadId}/runs`,
             {
                 assistant_id: ASSISTANT_ID,
-                instructions: instructions,
                 model: "gpt-4o-mini",
                 tools: [{ "type": "file_search" }],
                 truncation_strategy: {
@@ -89,6 +88,44 @@ async function startRun(threadId, instructions) {
         console.error('Error al iniciar el run:', error.response ? error.response.data : error.message);
         throw new Error('Error al iniciar el run.');
     }
+}
+
+// Función para esperar a que el run se complete
+async function waitForRunCompletion(threadId, runId) {
+    const MAX_POLLING_ATTEMPTS = 30; // Número máximo de intentos
+    const POLLING_INTERVAL_MS = 2000; // Intervalo entre intentos en milisegundos (2 segundos)
+
+    for (let attempt = 0; attempt < MAX_POLLING_ATTEMPTS; attempt++) {
+        try {
+            const response = await axios.get(
+                `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'OpenAI-Beta': 'assistants=v2'
+                    }
+                }
+            );
+
+            const status = response.data.status;
+            console.log(`Estado del run (${runId}): ${status}`);
+
+            if (status === 'completed') {
+                return; // El run se ha completado
+            } else if (status === 'failed') {
+                throw new Error('El run ha fallado.');
+            } else {
+                // El run está en estado 'pending' o 'running'
+                await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL_MS));
+            }
+        } catch (error) {
+            console.error('Error al comprobar el estado del run:', error.response ? error.response.data : error.message);
+            throw new Error('Error al comprobar el estado del run.');
+        }
+    }
+
+    throw new Error('El run no se completó en el tiempo esperado.');
 }
 
 // Función para recuperar el último mensaje generado por el asistente
@@ -122,7 +159,7 @@ async function getLastAssistantMessage(threadId) {
     }
 }
 
-// Función principal con middleware CORS aplicado correctamente
+// Función principal handleUserQuery con middleware CORS aplicado correctamente
 exports.handleUserQuery = onRequest(async (req, res) => {
     cors(req, res, async () => {
         if (req.method === 'OPTIONS') {
@@ -139,25 +176,27 @@ exports.handleUserQuery = onRequest(async (req, res) => {
             return res.status(400).send('El tipo de contenido debe ser application/json');
         }
 
-        const { pregunta, etiquetas, nombreDocumento, threadId, projectId } = req.body;
+        const { pregunta, etiquetas, nombreDocumentos, threadId, projectId } = req.body;
 
-        console.log('Datos recibidos:', { pregunta, etiquetas, nombreDocumento, threadId, projectId });
+        console.log('Datos recibidos:', { pregunta, etiquetas, nombreDocumentos, threadId, projectId });
 
-        if (!pregunta || !etiquetas || !nombreDocumento || !projectId) {
-            console.error('Solicitud inválida, faltan parámetros:', { pregunta, etiquetas, nombreDocumento, projectId });
+        if (!pregunta || !etiquetas || !nombreDocumentos || !projectId) {
+            console.error('Solicitud inválida, faltan parámetros:', { pregunta, etiquetas, nombreDocumentos, projectId });
             return res.status(400).json({
                 error: "Todos los parámetros son obligatorios. Verifica los datos enviados."
             });
         }
 
-        const vectorStorageId = nombreDocumento.split('-')[1];
+        // Convertir el array de nombres de documentos en una cadena
+        const documentosString = nombreDocumentos.join(', ');
+
         const etiquetasString = etiquetas.map(etiqueta => `${etiqueta.clave}: ${etiqueta.contenido}`).join(', ');
 
         const query = `
-            Responde a la siguiente arquitectura referente al documento del vector storage "${vectorStorageId}". 
-            Aquí tienes la información relevante del proyecto: ${etiquetasString}. 
-            Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin extenderte: ${pregunta}
-        `;
+Responde a la siguiente consulta relacionada con los documentos cuyos nombres son: "${documentosString}". 
+Aquí tienes la información relevante del proyecto: ${etiquetasString}. 
+Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin extenderte: ${pregunta}
+`;
 
         let newThreadId = threadId;
 
@@ -170,16 +209,123 @@ exports.handleUserQuery = onRequest(async (req, res) => {
                 await projectRef.update({ threadId: newThreadId });
             }
 
-            await sendMessage(newThreadId, pregunta);
-            const runId = await startRun(newThreadId, query);
+            // Enviar el mensaje completo con toda la información al asistente
+            await sendMessage(newThreadId, query);
+
+            // Iniciar el run sin instrucciones adicionales
+            const runId = await startRun(newThreadId);
             console.log('Run iniciado:', runId);
 
+            // Esperar a que el run se complete
+            await waitForRunCompletion(newThreadId, runId);
+
+            // Ahora podemos obtener el último mensaje del asistente
             const respuesta = await getLastAssistantMessage(newThreadId);
             console.log('Última respuesta del asistente:', respuesta);
             return res.status(200).json({ respuesta, threadId: newThreadId });
         } catch (error) {
             console.error('Error al procesar la solicitud:', error);
             return res.status(500).send('Error al procesar la solicitud.');
+        }
+    });
+});
+
+// Nueva función generateAdditionalTags
+exports.generateAdditionalTags = onRequest(async (req, res) => {
+    cors(req, res, async () => {
+        if (req.method === 'OPTIONS') {
+            res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.set('Access-Control-Allow-Headers', 'Content-Type');
+            return res.status(204).send('');
+        }
+
+        if (req.method !== 'POST') {
+            return res.status(405).send('Método no permitido');
+        }
+
+        if (req.headers['content-type'] !== 'application/json') {
+            return res.status(400).send('El tipo de contenido debe ser application/json');
+        }
+
+        const { etiquetasActuales, textoProyecto } = req.body;
+
+        console.log('Datos recibidos:', { etiquetasActuales, textoProyecto });
+
+        if (!etiquetasActuales || !Array.isArray(etiquetasActuales) || !textoProyecto) {
+            console.error('Solicitud inválida, faltan parámetros o son incorrectos:', { etiquetasActuales, textoProyecto });
+            return res.status(400).json({
+                error: "Todos los parámetros son obligatorios y deben tener el formato correcto. Verifica los datos enviados."
+            });
+        }
+
+        try {
+            // Construir el prompt para el modelo
+            const prompt = `
+Teniendo en cuenta las siguientes etiquetas actuales del proyecto:
+
+${etiquetasActuales.map(etiqueta => `- ${etiqueta.name}: ${etiqueta.value}`).join('\n')}
+
+Y el siguiente texto explicativo sobre el proyecto:
+
+"${textoProyecto}"
+
+Genera una lista de etiquetas adicionales relacionadas con la arquitectura que sean relevantes para responder preguntas sobre este proyecto. Devuelve las etiquetas en formato JSON como un array de objetos con las propiedades "name" y "value", sin ningún texto adicional ni bloques de código.
+
+Ejemplo de salida:
+[
+    { "name": "Etiqueta1", "value": "Valor1" },
+    { "name": "Etiqueta2", "value": "Valor2" }
+]
+`;
+
+            // Llamada a la API de OpenAI
+            const response = await axios.post(
+                'https://api.openai.com/v1/chat/completions',
+                {
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        { role: 'system', content: 'Eres un asistente útil y experto en arquitectura.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    max_tokens: 500,
+                    temperature: 0.7,
+                    n: 1,
+                    stop: null
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                }
+            );
+
+            const completion = response.data.choices[0].message.content.trim();
+
+            console.log('Respuesta del modelo:', completion);
+
+            // Limpiar la respuesta eliminando bloques de código y caracteres innecesarios
+            const cleanedCompletion = completion.replace(/```json\s*|```/g, '').trim();
+
+            // Intentar parsear la respuesta como JSON
+            let etiquetasAdicionales;
+            try {
+                etiquetasAdicionales = JSON.parse(cleanedCompletion);
+                if (!Array.isArray(etiquetasAdicionales)) {
+                    throw new Error('La respuesta no es un array válido.');
+                }
+            } catch (parseError) {
+                console.error('Error al parsear la respuesta del modelo:', parseError);
+                return res.status(500).json({
+                    error: 'Error al parsear la respuesta del modelo. Asegúrate de que el modelo está devolviendo un array JSON válido de etiquetas.'
+                });
+            }
+
+            return res.status(200).json({ etiquetasAdicionales });
+
+        } catch (error) {
+            console.error('Error al generar etiquetas adicionales:', error.response ? error.response.data : error.message);
+            return res.status(500).send('Error al generar etiquetas adicionales.');
         }
     });
 });

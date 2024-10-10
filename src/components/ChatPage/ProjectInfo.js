@@ -4,17 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const initialMandatoryTags = [
   { name: 'Tipo de edificio', value: '', type: 'select', options: ['Vivienda unifamiliar', 'Edificio de viviendas', 'Edificio de oficinas', 'Centro comercial', 'Industrial', 'Patrimonio histórico', 'Equipamiento público', 'Otro'] },
-  { name: 'Comunidad Autónoma', value: '', type: 'input' },
   { name: 'Zona climática', value: '', type: 'select', options: ['A', 'B', 'C', 'D', 'E'] },
   { name: 'Altura/núm plantas', value: '', type: 'input' },
   { name: 'Superficie del edificio', value: '', type: 'input' },
 ];
 
-export default function ProjectInfo({ info, onUpdateInfo, onManualEdit, onSave, setIsProjectInfoUpdated }) {
+export default function ProjectInfo({ info, onUpdateInfo, onManualEdit, onSave, setIsProjectInfoUpdated, onGenerateAutomaticTags, isGenerating }) {
   const [isOpen, setIsOpen] = useState(true);
   const [customTags, setCustomTags] = useState(initialMandatoryTags);
   const [inputMode, setInputMode] = useState('manual');
   const [newTag, setNewTag] = useState({ name: '', value: '' });
+  const [automaticText, setAutomaticText] = useState(''); // Estado para el texto automático
 
   useEffect(() => {
     const updatedMandatoryTags = initialMandatoryTags.map(tag => ({
@@ -92,12 +92,8 @@ export default function ProjectInfo({ info, onUpdateInfo, onManualEdit, onSave, 
     onSave(projectData);
   };
 
-  // Variables que deben ser definidas antes del return
-
-  // Número total de etiquetas con valor
+  // Variables para mostrar etiquetas resumidas en el encabezado
   const totalTags = customTags.filter((tag) => tag.value).length;
-
-  // Limitamos las etiquetas mostradas a 6
   const displayedTags = customTags.filter((tag) => tag.value).slice(0, 4);
 
   return (
@@ -211,14 +207,22 @@ export default function ProjectInfo({ info, onUpdateInfo, onManualEdit, onSave, 
                   {inputMode === 'automatic' && (
                     <div className="flex flex-col items-center gap-2 mt-2">
                       <textarea
-                        placeholder="Crea nuevas etiquetas a partir de texto"
+                        placeholder="Ingresa una descripción del proyecto"
                         className="w-full p-2 border border-gray-300 rounded-lg h-[108px] bg-[#F4EDE4]"
+                        value={automaticText}
+                        onChange={(e) => setAutomaticText(e.target.value)}
                       />
                       <div className="flex items-center gap-2 mt-2">
                         <button
+                          onClick={() => onGenerateAutomaticTags(automaticText)}
                           className="w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-full shadow hover:bg-blue-700 transition-colors duration-300"
+                          disabled={isGenerating}
                         >
-                          <FaPlus />
+                          {isGenerating ? (
+                            <div className="loader"></div> 
+                          ) : (
+                            <FaPlus />
+                          )}
                         </button>
                         <button
                           className="px-4 py-2 bg-green-500 text-white rounded shadow hover:bg-green-700 transition-colors duration-300"
@@ -240,22 +244,22 @@ export default function ProjectInfo({ info, onUpdateInfo, onManualEdit, onSave, 
                     initial={{ opacity: 0, x: -50 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 50 }}
-                    className="relative flex flex-col p-2 border border-gray-300 rounded-lg bg-[#F4EDE4]"
+                    className="relative flex flex-col p-4 border border-gray-300 rounded-lg bg-[#003366] text-white shadow-md"
                   >
                     {index >= initialMandatoryTags.length && (
                       <button
                         onClick={() => handleDeleteTag(index)}
-                        className="absolute top-1 right-1 text-red-500 hover:text-red-700"
+                        className="absolute top-2 right-2 text-red-200 hover:text-red-400"
                       >
                         <FaTimes />
                       </button>
                     )}
-                    <label className="block mb-1 text-sm font-medium">{tag.name}</label>
+                    <label className="block mb-1 text-sm font-semibold">{tag.name}</label>
                     {tag.type === 'select' ? (
                       <select
                         value={tag.value}
                         onChange={(e) => handleTagEdit(index, 'value', e.target.value)}
-                        className="p-1 border border-gray-300 rounded-lg text-sm bg-[#F4EDE4]"
+                        className="p-2 mt-1 border border-gray-300 rounded-md text-sm bg-white text-black"
                       >
                         <option value="">Selecciona una opción</option>
                         {tag.options.map((option, idx) => (
@@ -269,7 +273,7 @@ export default function ProjectInfo({ info, onUpdateInfo, onManualEdit, onSave, 
                         type="text"
                         value={tag.value}
                         onChange={(e) => handleTagEdit(index, 'value', e.target.value)}
-                        className="p-1 border border-gray-300 rounded-lg text-sm bg-[#F4EDE4]"
+                        className="p-2 mt-1 border border-gray-300 rounded-md text-sm bg-white text-black"
                       />
                     )}
                   </motion.div>

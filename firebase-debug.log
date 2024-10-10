@@ -1,0 +1,33 @@
+[debug] [2024-10-10T16:35:25.829Z] ----------------------------------------------------------------------
+[debug] [2024-10-10T16:35:25.831Z] Command:       C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\firebase-tools\lib\bin\firebase.js emulators:start
+[debug] [2024-10-10T16:35:25.831Z] CLI Version:   13.20.2
+[debug] [2024-10-10T16:35:25.831Z] Platform:      win32
+[debug] [2024-10-10T16:35:25.831Z] Node Version:  v18.20.4
+[debug] [2024-10-10T16:35:25.832Z] Time:          Thu Oct 10 2024 18:35:25 GMT+0200 (hora de verano de Europa central)
+[debug] [2024-10-10T16:35:25.833Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2024-10-10T16:35:25.923Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2024-10-10T16:35:25.924Z] > authorizing via signed-in user (luisvilaclara11@gmail.com)
+[info] i  emulators: Starting emulators: auth, functions, pubsub {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: auth, functions, pubsub"}}
+[debug] [2024-10-10T16:35:25.936Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2024-10-10T16:35:25.936Z] [auth] Authentication Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2024-10-10T16:35:25.936Z] [pubsub] Pub/Sub Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2024-10-10T16:35:25.936Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"pubsub":[{"address":"127.0.0.1","family":"IPv4","port":8085}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2024-10-10T16:35:25.941Z] [hub] writing locator at C:\Users\luisv\AppData\Local\Temp\hub-arquitest-8ecf6.json
+[debug] [2024-10-10T16:35:25.957Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2024-10-10T16:35:25.958Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2024-10-10T16:35:25.958Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2024-10-10T16:35:25.958Z] late-assigned ports for functions and eventarc emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"pubsub":[{"address":"127.0.0.1","family":"IPv4","port":8085}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] !  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: firestore, database, hosting, storage, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mfirestore, database, hosting, storage, dataconnect\u001b[22m"}}
+[debug] [2024-10-10T16:35:25.962Z] defaultcredentials: writing to file C:\Users\luisv\AppData\Roaming\firebase\luisvilaclara11_gmail_com_application_default_credentials.json
+[debug] [2024-10-10T16:35:25.965Z] Setting GAC to C:\Users\luisv\AppData\Roaming\firebase\luisvilaclara11_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\luisv\\AppData\\Roaming\\firebase\\luisvilaclara11_gmail_com_application_default_credentials.json"}}
+[debug] [2024-10-10T16:35:25.967Z] Checked if tokens are valid: false, expires at: 1728494325190
+[debug] [2024-10-10T16:35:25.967Z] Checked if tokens are valid: false, expires at: 1728494325190
+[debug] [2024-10-10T16:35:25.968Z] > refreshing access token with scopes: []
+[debug] [2024-10-10T16:35:25.971Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2024-10-10T16:35:25.971Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2024-10-10T16:35:26.146Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2024-10-10T16:35:26.146Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2024-10-10T16:35:26.163Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/arquitest-8ecf6/adminSdkConfig [none]
+[debug] [2024-10-10T16:35:26.580Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/arquitest-8ecf6/adminSdkConfig 200
+[debug] [2024-10-10T16:35:26.580Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/arquitest-8ecf6/adminSdkConfig {"projectId":"arquitest-8ecf6","storageBucket":"arquitest-8ecf6.appspot.com"}
