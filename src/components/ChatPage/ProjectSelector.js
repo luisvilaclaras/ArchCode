@@ -13,26 +13,26 @@ export default function ProjectSelector({ projects, onSelect, onNewProject, sele
   };
 
   const handleNewProjectClick = () => {
-    setLocalSelectedProject(null); // Deseleccionar cualquier proyecto
+    setLocalSelectedProject(null);
     onNewProject();
   };
 
   return (
-    <div className="w-48 h-screen bg-[#F4EDE4] shadow-xl flex flex-col p-2">
+    <div className="flex flex-col flex-grow p-2">
       <button 
         onClick={handleNewProjectClick} 
         className="w-full bg-[#001F54] text-white py-2 rounded-lg font-semibold text-xs hover:bg-yellow-600 transition-colors duration-300 mb-4"
       >
         + Nuevo Proyecto
       </button>
-      <div className="flex-1 flex flex-col space-y-2">
+      <div className="flex-1 flex flex-col space-y-2 overflow-auto">
         {projects && projects.length > 0 ? (
           projects.map((project, index) => (
             <div 
               key={index} 
               onClick={() => handleProjectClick(project)} 
               className={`py-2 px-3 rounded-lg text-xs text-center cursor-pointer transition-colors duration-200 
-                          ${localSelectedProject === project ? 'bg-yellow-100 border-2 border-yellow-500' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          ${localSelectedProject === project ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               {project}
             </div>

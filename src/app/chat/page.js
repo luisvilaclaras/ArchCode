@@ -307,15 +307,14 @@ const handleUserQuery = async (question) => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden">
-        <div className="flex flex-col w-full md:w-1/4 bg-[#F4EDE4] p-4 space-y-4">
-            <ProjectSelector 
-                projects={userData.projects} 
-                onSelect={handleProjectSelect} 
-                onNewProject={handleNewProject} 
-                selectedProject={selectedProject}
-            />
-        </div>
-
+        <div className="flex flex-col w-48 bg-[#F4EDE4]">
+        <ProjectSelector 
+          projects={userData.projects} 
+          onSelect={handleProjectSelect} 
+          onNewProject={handleNewProject} 
+          selectedProject={selectedProject}
+        />
+      </div>
         <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
             <div className="mb-4">
               <DocumentSelector 
