@@ -41,14 +41,7 @@ export default function Chat({ projectInfo, selectedDocument, onSendMessage }) {
         {messages.map((msg, index) => (
           <div key={index} className={`py-2 rounded-md p-2 mb-2 ${msg.sender === 'user' ? 'bg-[#F5F5F5] ml-10' : 'bg-[#E0E0E0] text-center'}`}>
             {msg.text}
-            {msg.sender === 'gpt' && (
-              <button
-                className="mt-2 px-2 py-1 bg-green-500 text-white rounded"
-                onClick={() => onSendMessage(msg.text)}
-              >
-                Actualizar la información actual del proyecto
-              </button>
-            )}
+            
           </div>
         ))}
       </div>

@@ -1,27 +1,59 @@
 import React, { useState } from 'react';
 
-export default function DocumentSelector({ onSelect }) {
+export default function DocumentSelector({ availablePDFs, selectedRegion, onRegionSelect, onSelect }) {
   const [selectedDocument, setSelectedDocument] = useState('');
 
-  const handleSelect = (e) => {
-    const doc = e.target.value;
-    setSelectedDocument(doc);
-    onSelect(doc); // Devuelve la string con el PDF seleccionado
+  const handleRegionChange = (e) => {
+    const region = e.target.value;
+    onRegionSelect(region);
+    setSelectedDocument(''); // Reinicia el documento seleccionado al cambiar la región
   };
 
+  const handleDocumentChange = (e) => {
+    const doc = e.target.value;
+    setSelectedDocument(doc);
+    onSelect(doc);
+  };
+
+  const regions = Object.keys(availablePDFs);
+
+  // Filtrar documentos nacionales para no repetir si ya están en la comunidad seleccionada
+  const nationalDocuments = availablePDFs['Nacionales'] || [];
+  const regionalDocuments = availablePDFs[selectedRegion] || [];
+  const uniqueDocuments = regionalDocuments.concat(
+    nationalDocuments.filter((doc) => !regionalDocuments.includes(doc))
+  );
+
   return (
-    <div className="relative inline-block w-64">
-      <select 
-        className="w-full py-2 px-4 rounded-lg bg-[#F5F5F5] border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        value={selectedDocument}
-        onChange={handleSelect}
-      >
-        <option value="" disabled>Select a document</option>
-        <option value="SE - Seguridad Estructural">SE - Seguridad Estructural</option>
-        <option value="Seguridad_En_Caso_De_Incendios">SI - Seguridad en caso de incendio</option>
-        <option value="SUA - Seguridad de utilización y accesibilidad">SUA - Seguridad de utilización y accesibilidad</option>
-        <option value="HE - Ahorro de energía">HE - Ahorro de energía</option>
-      </select>
+    <div className="flex gap-2 items-center">
+      <div className="w-1/3">
+        <select
+          className="w-full py-2 px-3 rounded-md bg-[#F0F0F0] border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+          value={selectedRegion}
+          onChange={handleRegionChange}
+        >
+          <option value="" disabled>Select a region</option>
+          {regions.map((region, index) => (
+            <option key={index} value={region}>{region}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="w-1/3">
+        <select
+          className="w-full py-2 px-3 rounded-md bg-[#F0F0F0] border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+          value={selectedDocument}
+          onChange={handleDocumentChange}
+          disabled={!selectedRegion}
+        >
+          <option value="" disabled>Select a document</option>
+          {uniqueDocuments.map((pdf, index) => (
+            <option key={index} value={pdf}>
+              {nationalDocuments.includes(pdf) ? `★ ${pdf}` : pdf}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }

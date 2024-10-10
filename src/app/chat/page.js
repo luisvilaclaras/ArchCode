@@ -15,6 +15,8 @@ import { initialMandatoryTags } from '@/components/ChatPage/ProjectInfo';
 export default function HomePage() {
   const [userData, setUserData] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState('');
+  const [availablePDFs, setAvailablePDFs] = useState({});
+  const [selectedRegion, setSelectedRegion] = useState('Nacionales');
   const [projectInfo, setProjectInfo] = useState([]);
   const [localProjectData, setLocalProjectData] = useState({});
   const [selectedProject, setSelectedProject] = useState(null);
@@ -46,6 +48,24 @@ export default function HomePage() {
 
     fetchUserData();
   }, [router]);
+
+  useEffect(() => {
+    const fetchPDFs = async () => {
+      try {
+        const docRef = doc(db, "AvailablePDF", "Spain");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setAvailablePDFs(docSnap.data().pdfArray);
+        } else {
+          console.error("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching PDFs: ", error);
+      }
+    };
+
+    fetchPDFs();
+  }, []);
 
   // Función para manejar la llamada a la función de Firebase y recuperar la respuesta
  // Función para manejar la llamada a la función de Firebase y recuperar la respuesta
@@ -108,66 +128,71 @@ const handleUserQuery = async (question) => {
 
 
 
-const handleProjectSelect = async (projectId) => {
-  setSelectedProject(projectId);
-  setIsProjectInfoUpdated(false);
-  setIsCreatingNewProject(false);
-  setPendingProjectInfo([]);
+  const handleProjectSelect = async (projectId) => {
+    setSelectedProject(projectId);
+    setIsProjectInfoUpdated(false);
+    setIsCreatingNewProject(false);
+    setPendingProjectInfo([]);
 
-  if (!projectId) {
-      setProjectInfo([]);
-      return;
-  }
-
-  // Si los datos del proyecto ya están en memoria local, se usan esos datos
-  if (localProjectData[projectId]) {
-      const storedData = localProjectData[projectId];
-      const updatedInfo = initialMandatoryTags.map(tag => ({
-          ...tag,
-          value: storedData.find(t => t.name === tag.name)?.value || tag.value,
-      }));
-      const customTagsOnly = storedData.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
-      setProjectInfo([...updatedInfo, ...customTagsOnly]);
-  } else {
-      // Si no, se cargan los datos desde Firestore
-      try {
-          const projectRef = doc(db, "Projects", projectId);
-          const projectSnap = await getDoc(projectRef);
-          if (projectSnap.exists()) {
-              const projectContent = projectSnap.data().content || [];
-              const updatedInfo = initialMandatoryTags.map(tag => ({
-                  ...tag,
-                  value: projectContent.find(t => t.name === tag.name)?.value || tag.value,
-              }));
-              const customTagsOnly = projectContent.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
-              setProjectInfo([...updatedInfo, ...customTagsOnly]);
-              setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
-              
-              // Establecer el threadId si existe en Firestore
-              const existingThreadId = projectSnap.data().threadId;
-              if (existingThreadId) {
-                  setThreadId(existingThreadId);
-              } else {
-                  setThreadId(null);
-              }
-          } else {
-              setProjectInfo([]);
-          }
-      } catch (error) {
-          console.error("Error al obtener la información del proyecto: ", error);
-          setProjectInfo([]);
-      }
-  }
-};
-
-
-    const handleNewProject = () => {
-        setSelectedProject(null);
+    if (!projectId) {
         setProjectInfo([]);
-        setIsProjectInfoUpdated(false);
-        setIsCreatingNewProject(true);
-        setPendingProjectInfo([]);
-    };
+        return;
+    }
+
+    // Si los datos del proyecto ya están en memoria local, se usan esos datos
+    if (localProjectData[projectId]) {
+        const storedData = localProjectData[projectId];
+        const updatedInfo = initialMandatoryTags.map(tag => ({
+            ...tag,
+            value: storedData.find(t => t.name === tag.name)?.value || tag.value,
+        }));
+        const customTagsOnly = storedData.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
+        setProjectInfo([...updatedInfo, ...customTagsOnly]);
+    } else {
+        // Si no, se cargan los datos desde Firestore
+        try {
+            const projectRef = doc(db, "Projects", projectId);
+            const projectSnap = await getDoc(projectRef);
+            if (projectSnap.exists()) {
+                const projectContent = projectSnap.data().content || [];
+                const updatedInfo = initialMandatoryTags.map(tag => ({
+                    ...tag,
+                    value: projectContent.find(t => t.name === tag.name)?.value || tag.value,
+                }));
+                const customTagsOnly = projectContent.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
+                setProjectInfo([...updatedInfo, ...customTagsOnly]);
+                setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
+                
+                // Establecer el threadId si existe en Firestore
+                const existingThreadId = projectSnap.data().threadId;
+                if (existingThreadId) {
+                    setThreadId(existingThreadId);
+                } else {
+                    setThreadId(null);
+                }
+            } else {
+                setProjectInfo([]);
+            }
+        } catch (error) {
+            console.error("Error al obtener la información del proyecto: ", error);
+            setProjectInfo([]);
+        }
+    }
+  };
+
+
+  const handleNewProject = () => {
+      setSelectedProject(null);
+      setProjectInfo([]);
+      setIsProjectInfoUpdated(false);
+      setIsCreatingNewProject(true);
+      setPendingProjectInfo([]);
+  };
+
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+    setSelectedDocument(''); // Resetea el documento seleccionado al cambiar la región
+  };
 
   const handleDocumentSelect = (doc) => {
     setSelectedDocument(doc);
@@ -212,41 +237,38 @@ const handleProjectSelect = async (projectId) => {
         alert('Error al crear el proyecto.');
         return null;
     }
-};
+  };
 
-const handleSaveProject = async (projectContent) => {
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            console.error("No user logged in!");
-            return;
-        }
+  const handleSaveProject = async (projectContent) => {
+      try {
+          const user = auth.currentUser;
+          if (!user) {
+              console.error("No user logged in!");
+              return;
+          }
 
-        if (selectedProject) {
-            // Si hay un proyecto seleccionado, lo actualizamos
-            const projectRef = doc(db, "Projects", selectedProject);
-            await updateDoc(projectRef, { content: projectContent });
+          if (selectedProject) {
+              // Si hay un proyecto seleccionado, lo actualizamos
+              const projectRef = doc(db, "Projects", selectedProject);
+              await updateDoc(projectRef, { content: projectContent });
 
-            setLocalProjectData(prevData => ({ ...prevData, [selectedProject]: projectContent }));
-            alert(`Proyecto actualizado con éxito.`);
-        } else {
-            // Si no hay un proyecto seleccionado, se crea uno nuevo
-            const newProjectId = await createNewProject(projectContent);
-            if (newProjectId) {
-                alert(`Proyecto creado con éxito.`);
-            }
-        }
+              setLocalProjectData(prevData => ({ ...prevData, [selectedProject]: projectContent }));
+              alert(`Proyecto actualizado con éxito.`);
+          } else {
+              // Si no hay un proyecto seleccionado, se crea uno nuevo
+              const newProjectId = await createNewProject(projectContent);
+              if (newProjectId) {
+                  alert(`Proyecto creado con éxito.`);
+              }
+          }
 
-        setIsProjectInfoUpdated(false);
+          setIsProjectInfoUpdated(false);
 
-    } catch (error) {
-        console.error('Error al guardar el proyecto:', error);
-        alert('Error al guardar el proyecto.');
-    }
-};
-
-
-
+      } catch (error) {
+          console.error('Error al guardar el proyecto:', error);
+          alert('Error al guardar el proyecto.');
+      }
+  };
 
 
   const handleUpdateProjectInfo = async (newInfo) => {
@@ -296,7 +318,12 @@ const handleSaveProject = async (projectContent) => {
 
         <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
             <div className="mb-4">
-                <DocumentSelector onSelect={handleDocumentSelect} />
+              <DocumentSelector 
+                availablePDFs={availablePDFs} 
+                selectedRegion={selectedRegion}
+                onRegionSelect={handleRegionSelect}
+                onSelect={handleDocumentSelect}
+              />
             </div>
             <ProjectInfo 
                 info={projectInfo} 

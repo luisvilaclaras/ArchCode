@@ -34,13 +34,16 @@ export default function UserMenu() {
 
   return (
     <div className="relative">
-     <button 
+      <button 
         className="absolute top-2 right-4 flex items-center space-x-2 p-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 focus:outline-none"
         onClick={toggleMenu}
-        >
+      >
         <FaUserCircle className="text-2xl" />
-        {currentUser && <span className="hidden sm:inline">{currentUser.email}</span>}
-     </button>
+        {/* Correo electrónico visible solo en pantallas medianas o mayores */}
+        {currentUser && (
+          <span className="hidden lg:inline ml-2">{currentUser.email}</span>
+        )}
+      </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-12 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
