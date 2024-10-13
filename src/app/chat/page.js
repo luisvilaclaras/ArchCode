@@ -10,13 +10,15 @@ import ProjectInfo, { initialMandatoryTags } from '@/components/ChatPage/Project
 import Chat from '@/components/ChatPage/Chat';
 import UserMenu from '@/components/ChatPage/UserMenu';
 import { v4 as uuidv4 } from 'uuid'; 
+import ConfirmationModal from '@/components/Modals/ConfirmationModal';
+
 
 export default function HomePage() {
   const [userData, setUserData] = useState(null);
   const [selectedDocuments, setSelectedDocuments] = useState([]); // Cambiado a array
   const [availablePDFs, setAvailablePDFs] = useState({});
   const [selectedRegion, setSelectedRegion] = useState('Nacionales');
-  const [projectInfo, setProjectInfo] = useState([]);
+  const [projectInfo, setProjectInfo] = useState(initialMandatoryTags);
   const [localProjectData, setLocalProjectData] = useState({});
   const [selectedProject, setSelectedProject] = useState(null);
   const [isProjectInfoUpdated, setIsProjectInfoUpdated] = useState(false);
@@ -24,6 +26,9 @@ export default function HomePage() {
   const [pendingProjectInfo, setPendingProjectInfo] = useState([]);
   const [threadId, setThreadId] = useState(null); // Nuevo estado para el ID del thread
   const [isGeneratingTags, setIsGeneratingTags] = useState(false); // Nuevo estado para la generación de etiquetas
+  const [showConfirmation, setShowConfirmation] = useState(false);  // Nuevo estado para mostrar el modal
+  const [resetTagsTrigger, setResetTagsTrigger] = useState(false);
+
   const router = useRouter(); 
 
   useEffect(() => {
@@ -122,21 +127,21 @@ export default function HomePage() {
     }
   };
 
-  const handleProjectSelect = async (projectId) => {
-    setSelectedProject(projectId);
+  const handleProjectSelect = async (projectName) => {
+    setSelectedProject(projectName);
     setIsProjectInfoUpdated(false);
     setIsCreatingNewProject(false);
     setPendingProjectInfo([]);
     setThreadId(null); // Reiniciar threadId al cambiar de proyecto
 
-    if (!projectId) {
+    if (!projectName) {
         setProjectInfo([]);
         return;
     }
 
     // Si los datos del proyecto ya están en memoria local, se usan esos datos
-    if (localProjectData[projectId]) {
-        const storedData = localProjectData[projectId];
+    if (localProjectData[projectName]) {
+        const storedData = localProjectData[projectName];
         const updatedInfo = initialMandatoryTags.map(tag => ({
             ...tag,
             value: storedData.find(t => t.name === tag.name)?.value || tag.value,
@@ -146,7 +151,7 @@ export default function HomePage() {
     } else {
         // Si no, se cargan los datos desde Firestore
         try {
-            const projectRef = doc(db, "Projects", projectId);
+            const projectRef = doc(db, "Projects", projectName);
             const projectSnap = await getDoc(projectRef);
             if (projectSnap.exists()) {
                 const projectContent = projectSnap.data().content || [];
@@ -156,8 +161,8 @@ export default function HomePage() {
                 }));
                 const customTagsOnly = projectContent.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
                 setProjectInfo([...updatedInfo, ...customTagsOnly]);
-                setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
-                
+                setLocalProjectData(prevData => ({ ...prevData, [projectName]: projectContent }));
+
                 // Establecer el threadId si existe en Firestore
                 const existingThreadId = projectSnap.data().threadId;
                 if (existingThreadId) {
@@ -176,12 +181,20 @@ export default function HomePage() {
   };
 
   const handleNewProject = () => {
-      setSelectedProject(null);
-      setProjectInfo([]);
-      setIsProjectInfoUpdated(false);
-      setIsCreatingNewProject(true);
-      setPendingProjectInfo([]);
-      setThreadId(null); // Reiniciar threadId al crear nuevo proyecto
+    if (isProjectInfoUpdated) {
+      // Si hay cambios no guardados, mostrar el modal de confirmación
+      setShowConfirmation(true);
+    } else {
+      // Crear un nuevo proyecto sin necesidad de confirmar
+      clearProjectInfo();
+    }
+  };
+
+  const handleConfirmNewProject = (confirmed) => {
+    if (confirmed) {
+      clearProjectInfo();
+    }
+    setShowConfirmation(false); // Ocultar el modal después de la confirmación
   };
 
   const handleRegionSelect = (region) => {
@@ -193,7 +206,7 @@ export default function HomePage() {
     setSelectedDocuments(docs);
   };
 
-  const createNewProject = async (info) => {
+  const createNewProject = async (info, projectNamePrefix) => {
     try {
         const user = auth.currentUser;
         if (!user) {
@@ -204,15 +217,17 @@ export default function HomePage() {
         // Filtrar solo las etiquetas que tienen valores definidos y no vacíos
         const filteredInfo = info.filter(tag => tag.value !== undefined && tag.value.trim() !== '');
 
-        const projectName = `Proyecto-${uuidv4()}`;
+        // Generar el nombre del proyecto
+        const projectName = `${projectNamePrefix}-${user.uid.slice(-5)}`;
+
         const projectRef = await addDoc(collection(db, 'Projects'), {
             name: projectName,
             content: filteredInfo,
         });
 
-        // Actualizar la lista de proyectos del usuario
+        // Actualizar la lista de proyectos del usuario usando el "name" en lugar del ID
         const userRef = doc(db, "Users", user.uid);
-        const updatedProjects = userData.projects ? [...userData.projects, projectRef.id] : [projectRef.id];
+        const updatedProjects = userData.projects ? [...userData.projects, projectName] : [projectName];
         await updateDoc(userRef, {
             projects: updatedProjects,
         });
@@ -222,10 +237,10 @@ export default function HomePage() {
             projects: updatedProjects,
         }));
 
-        setLocalProjectData(prevData => ({ ...prevData, [projectRef.id]: filteredInfo }));
-        setSelectedProject(projectRef.id);
+        setLocalProjectData(prevData => ({ ...prevData, [projectName]: filteredInfo }));
+        setSelectedProject(projectName);
 
-        return projectRef.id;
+        return projectName;
     } catch (error) {
         console.error('Error al crear el proyecto:', error);
         alert('Error al crear el proyecto.');
@@ -233,35 +248,54 @@ export default function HomePage() {
     }
   };
 
-  const handleSaveProject = async (projectContent) => {
-      try {
-          const user = auth.currentUser;
-          if (!user) {
-              console.error("No user logged in!");
-              return;
-          }
+  const clearProjectInfo = () => {
+    setSelectedProject(null);
+  
+    // Reiniciar todas las etiquetas obligatorias, dejándolas vacías
+    const resetMandatoryTags = initialMandatoryTags.map(tag => ({ ...tag, value: '' }));
+    setProjectInfo(resetMandatoryTags); // Deja solo las etiquetas obligatorias vacías
+  
+    // Alternar el estado para indicar que se deben reiniciar las etiquetas en ProjectInfo
+    setResetTagsTrigger(prev => !prev);
+  
+    setIsProjectInfoUpdated(false);
+    setIsCreatingNewProject(true);
+    setPendingProjectInfo([]);
+    setLocalProjectData({});
+    setThreadId(null); // Reiniciar threadId al crear nuevo proyecto
+  };
+  
+  
 
-          if (selectedProject) {
-              // Si hay un proyecto seleccionado, lo actualizamos
-              const projectRef = doc(db, "Projects", selectedProject);
-              await updateDoc(projectRef, { content: projectContent });
+  const handleSaveProject = async (projectContent, projectNamePrefix) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            console.error("No user logged in!");
+            return;
+        }
 
-              setLocalProjectData(prevData => ({ ...prevData, [selectedProject]: projectContent }));
-              alert(`Proyecto actualizado con éxito.`);
-          } else {
-              // Si no hay un proyecto seleccionado, se crea uno nuevo
-              const newProjectId = await createNewProject(projectContent);
-              if (newProjectId) {
-                  alert(`Proyecto creado con éxito.`);
-              }
-          }
+        if (selectedProject) {
+            // Si hay un proyecto seleccionado, lo actualizamos
+            const projectRef = doc(db, "Projects", selectedProject);
+            await updateDoc(projectRef, { content: projectContent });
 
-          setIsProjectInfoUpdated(false);
+            setLocalProjectData(prevData => ({ ...prevData, [selectedProject]: projectContent }));
+            alert(`Proyecto actualizado con éxito.`);
+        } else {
+            // Si no hay un proyecto seleccionado, se crea uno nuevo
+            const newProjectName = await createNewProject(projectContent, projectNamePrefix);
+            if (newProjectName) {
+                alert(`Proyecto creado con éxito.`);
+            }
+        }
 
-      } catch (error) {
-          console.error('Error al guardar el proyecto:', error);
-          alert('Error al guardar el proyecto.');
-      }
+        setIsProjectInfoUpdated(false);
+
+    } catch (error) {
+        console.error('Error al guardar el proyecto:', error);
+        alert('Error al guardar el proyecto.');
+    }
   };
 
   const handleUpdateProjectInfo = async (newInfo) => {
@@ -282,6 +316,46 @@ export default function HomePage() {
     }
   };
 
+  const handleProjectNameChange = async (newName) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            console.error("No user logged in!");
+            return;
+        }
+
+        if (selectedProject) {
+            // Actualiza el nombre del proyecto en Firestore
+            const projectRef = doc(db, "Projects", selectedProject);
+            await updateDoc(projectRef, { name: newName });
+
+            // Actualiza la lista de proyectos del usuario en Firestore
+            const userRef = doc(db, "Users", user.uid);
+            const updatedProjects = userData.projects.map(project =>
+                project === selectedProject ? newName : project
+            );
+
+            await updateDoc(userRef, {
+                projects: updatedProjects,
+            });
+
+            // Actualiza el estado local del nombre del proyecto
+            setLocalProjectData(prevData => ({
+                ...prevData,
+                [newName]: prevData[selectedProject],
+            }));
+            setSelectedProject(newName);
+            setUserData(prevData => ({
+                ...prevData,
+                projects: updatedProjects,
+            }));
+        }
+    } catch (error) {
+        console.error('Error al actualizar el nombre del proyecto:', error);
+        alert('Hubo un error al actualizar el nombre del proyecto.');
+    }
+  };
+
   const handleManualEdit = () => {
     setIsProjectInfoUpdated(true);
   };
@@ -296,59 +370,77 @@ export default function HomePage() {
   // Nueva función para manejar la generación automática de etiquetas
   const handleGenerateAutomaticTags = async (automaticText) => {
     if (!automaticText.trim()) {
-        alert('Por favor, ingresa un texto descriptivo del proyecto.');
-        return;
+      alert('Por favor, ingresa un texto descriptivo del proyecto.');
+      return;
     }
-
+  
     setIsGeneratingTags(true);
-
+  
+    // Combinar projectInfo con initialMandatoryTags para asegurarnos de que tenemos todas las etiquetas obligatorias
+    const combinedProjectInfo = initialMandatoryTags.map(tag => {
+      const existingTag = projectInfo.find(t => t.name === tag.name);
+      return existingTag ? existingTag : tag;
+    });
+  
+    // Añadir etiquetas personalizadas existentes
+    const existingCustomTags = projectInfo.filter(tag => !initialMandatoryTags.some(mTag => mTag.name === tag.name));
+    combinedProjectInfo.push(...existingCustomTags);
+  
     try {
-        const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/generateAdditionalTags', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                etiquetasActuales: projectInfo, // Enviamos las etiquetas actuales
-                textoProyecto: automaticText
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Error al generar etiquetas adicionales.');
+      const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/generateAdditionalTags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          etiquetasActuales: combinedProjectInfo,
+          textoProyecto: automaticText
+        })
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error al generar etiquetas adicionales.');
+      }
+  
+      const data = await response.json();
+      const etiquetasAdicionales = data.etiquetasAdicionales;
+  
+      // Actualizar etiquetas obligatorias con los valores generados
+      const updatedMandatoryTags = combinedProjectInfo.map(tag => {
+        if (initialMandatoryTags.some(mTag => mTag.name === tag.name)) {
+          const generatedTag = etiquetasAdicionales.find(gTag => gTag.name.toLowerCase() === tag.name.toLowerCase());
+          if (generatedTag && (!tag.value || tag.value.trim() === '')) {
+            return { ...tag, value: generatedTag.value };
+          }
         }
-
-        const data = await response.json();
-        const etiquetasAdicionales = data.etiquetasAdicionales;
-
-        // Mapear etiquetas por defecto
-        const defaultTagNames = initialMandatoryTags.map(tag => tag.name);
-
-        // Actualizar etiquetas por defecto si están vacías
-        const updatedProjectInfo = projectInfo.map(tag => {
-            if (defaultTagNames.includes(tag.name) && (!tag.value || tag.value.trim() === '')) {
-                const generatedTag = etiquetasAdicionales.find(gTag => gTag.name.toLowerCase() === tag.name.toLowerCase());
-                if (generatedTag) {
-                    return { ...tag, value: generatedTag.value };
-                }
-            }
-            return tag;
-        });
-
-        // Añadir las etiquetas generadas que no son de las etiquetas por defecto
-        const customGeneratedTags = etiquetasAdicionales.filter(tag => !defaultTagNames.includes(tag.name));
-        const updatedTags = [...updatedProjectInfo, ...customGeneratedTags];
-
-        setProjectInfo(updatedTags);
-        setIsProjectInfoUpdated(true);
-
+        return tag;
+      });
+  
+      // Filtrar etiquetas personalizadas que ya existen y tienen valor
+      const maintainedCustomTags = existingCustomTags.filter(tag => tag.value && tag.value.trim() !== '');
+  
+      // Añadir nuevas etiquetas personalizadas generadas que no existen ya
+      const newCustomTags = etiquetasAdicionales.filter(gTag => {
+        const isDefaultTag = initialMandatoryTags.some(mTag => mTag.name === gTag.name);
+        const isExistingTag = maintainedCustomTags.some(pTag => pTag.name === gTag.name);
+        return !isDefaultTag && !isExistingTag;
+      });
+  
+      // Fusionar todas las etiquetas
+      const updatedProjectInfo = [...updatedMandatoryTags, ...maintainedCustomTags, ...newCustomTags];
+  
+      setProjectInfo(updatedProjectInfo);
+      setIsProjectInfoUpdated(true);
+  
     } catch (error) {
-        console.error('Error al generar etiquetas automáticas:', error);
-        alert('Hubo un error al generar etiquetas automáticas.');
+      console.error('Error al generar etiquetas automáticas:', error);
+      alert('Hubo un error al generar etiquetas automáticas.');
     } finally {
-        setIsGeneratingTags(false);
+      setIsGeneratingTags(false);
     }
   };
+  
+  
 
   if (!userData) {
     return <div>Loading...</div>;
@@ -356,43 +448,54 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden">
-        <div className="flex flex-col w-48 bg-[#F4EDE4]">
-          <ProjectSelector 
-            projects={userData.projects} 
-            onSelect={handleProjectSelect} 
-            onNewProject={handleNewProject} 
-            selectedProject={selectedProject}
+      <div className="flex flex-col w-48 bg-[#F4EDE4]">
+        <ProjectSelector 
+          projects={userData?.projects || []} 
+          onSelect={handleProjectSelect} 
+          onNewProject={handleNewProject} 
+          selectedProject={selectedProject}
+        />
+      </div>
+      <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
+        <div className="mb-4">
+          <DocumentSelector 
+            availablePDFs={availablePDFs} 
+            selectedRegion={selectedRegion}
+            onRegionSelect={handleRegionSelect}
+            onSelect={handleDocumentSelect}
           />
         </div>
-        <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
-            <div className="mb-4">
-              <DocumentSelector 
-                availablePDFs={availablePDFs} 
-                selectedRegion={selectedRegion}
-                onRegionSelect={handleRegionSelect}
-                onSelect={handleDocumentSelect}
-              />
-            </div>
-            <ProjectInfo 
-                info={projectInfo} 
-                onUpdateInfo={handleUpdateProjectInfo} 
-                onManualEdit={handleManualEdit} 
-                onSave={handleSaveProject}
-                setIsProjectInfoUpdated={setIsProjectInfoUpdated} 
-                onGenerateAutomaticTags={handleGenerateAutomaticTags} // Pasamos la nueva prop
-                isGenerating={isGeneratingTags} // Pasamos el estado de carga
-            />
-            <Chat 
-                projectInfo={projectInfo} 
-                selectedDocuments={selectedDocuments} // Cambiado a selectedDocuments
-                onUpdateProjectInfo={handleUpdateProjectInfo} 
-                onSendMessage={handleSendMessage} // Prop para manejar el envío de mensajes
-            />
-        </div>
+        <ProjectInfo 
+          info={projectInfo} 
+          onUpdateInfo={handleUpdateProjectInfo} 
+          onManualEdit={handleManualEdit} 
+          onSave={handleSaveProject}
+          setIsProjectInfoUpdated={setIsProjectInfoUpdated} 
+          onGenerateAutomaticTags={handleGenerateAutomaticTags}
+          isGenerating={isGeneratingTags}
+          projectName={selectedProject} 
+          onProjectNameChange={handleProjectNameChange} 
+          resetTags={resetTagsTrigger} // Nueva prop
+        />
+        <Chat 
+          projectInfo={projectInfo} 
+          selectedDocuments={selectedDocuments}
+          onUpdateProjectInfo={handleUpdateProjectInfo} 
+          onSendMessage={handleSendMessage}
+        />
+      </div>
 
-        <div className="absolute top-4 right-4">
-            <UserMenu />
-        </div>
+      <div className="absolute top-4 right-4">
+        <UserMenu />
+      </div>
+
+      {/* Modal de confirmación */}
+      {showConfirmation && (
+        <ConfirmationModal 
+          message="¿Estás seguro de que quieres crear un nuevo proyecto sin guardar el actual? Se podría perder información."
+          onConfirm={handleConfirmNewProject}
+        />
+      )}
     </div>
   );
 }

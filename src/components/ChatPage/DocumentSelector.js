@@ -56,19 +56,19 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
 
   // Estilos comunes para ambos selectores
   const commonSelectorClasses =
-    'w-full py-2 px-3 rounded-md bg-[#001F54] text-white border border-white focus:outline-none focus:ring-2 focus:ring-white transition duration-200';
+    'py-2 px-3 rounded-md bg-[#001F54] text-white border border-white focus:outline-none focus:ring-2 focus:ring-white transition duration-200';
 
   return (
-    <div className="flex gap-2 items-center bg-[#001F54] p-4 rounded-lg shadow-lg">
+    <div className="flex flex-wrap gap-2 items-center">
       {/* Selector de Región */}
-      <div className="w-1/3 relative">
+      <div className="relative">
         <select
-          className={`${commonSelectorClasses} appearance-none pr-10`}
+          className={`${commonSelectorClasses} appearance-none pr-10 w-40`}
           value={selectedRegion}
           onChange={handleRegionChange}
         >
           <option value="" disabled>
-            Selecciona una región
+            Selecciona región
           </option>
           {regions.map((region, index) => (
             <option key={index} value={region}>
@@ -82,15 +82,15 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
       </div>
 
       {/* Selector de Documentos */}
-      <div className="w-1/3 relative" ref={dropdownRef}>
+      <div className="relative" ref={dropdownRef}>
         <button
           onClick={handleDropdownToggle}
-          className={`${commonSelectorClasses} flex justify-between items-center pr-10`}
+          className={`${commonSelectorClasses} flex justify-between items-center pr-10 w-60`}
           disabled={!selectedRegion}
         >
-          <span>
+          <span className="truncate">
             {selectedDocuments.length > 0
-              ? `${selectedDocuments.length} documento(s) seleccionado(s)`
+              ? `${selectedDocuments.length} documento(s)`
               : 'Selecciona documentos'}
           </span>
         </button>

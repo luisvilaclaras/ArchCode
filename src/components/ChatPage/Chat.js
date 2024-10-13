@@ -53,7 +53,7 @@ export default function Chat({ projectInfo, selectedDocument, onSendMessage }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             className="w-full py-1 pl-4 pr-8 rounded-full bg-[#F5F5F5] border-none focus:outline-none text-xs"
-            placeholder="Type message"
+            placeholder="Escribe un mensaje"
           />
           <button 
             onClick={handleSendMessage}

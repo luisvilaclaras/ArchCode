@@ -129,7 +129,7 @@ async function waitForRunCompletion(threadId, runId) {
 }
 
 // Función para recuperar el último mensaje generado por el asistente
-async function getLastAssistantMessage(threadId) {
+async function getLastAssistantMessage(threadId, runId) {
     try {
         const response = await axios.get(
             `https://api.openai.com/v1/threads/${threadId}/messages`,
@@ -144,20 +144,29 @@ async function getLastAssistantMessage(threadId) {
 
         console.log('Respuesta completa de mensajes:', JSON.stringify(response.data, null, 2));
 
+        // Filtrar los mensajes del asistente
         const messages = response.data.data;
-        const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+        const assistantMessages = messages.filter(msg => msg.role === 'assistant' && msg.run_id === runId);
+
         if (assistantMessages.length > 0) {
             const lastMessage = assistantMessages[assistantMessages.length - 1];
-            const content = lastMessage.content.find(c => c.type === 'text');
-            return content.text.value;
+            const textContent = lastMessage.content.find(c => c.type === 'text');
+            
+            if (textContent) {
+                return textContent.text.value;
+            } else {
+                throw new Error('El mensaje del asistente no tiene contenido de texto.');
+            }
         } else {
-            throw new Error('No se encontraron mensajes del asistente en la respuesta.');
+            throw new Error('No se encontraron mensajes del asistente en la respuesta para el run especificado.');
         }
     } catch (error) {
         console.error('Error al obtener los mensajes:', error.response ? error.response.data : error.message);
         throw new Error('Error al obtener los mensajes del thread.');
     }
 }
+
+
 
 // Función principal handleUserQuery con middleware CORS aplicado correctamente
 exports.handleUserQuery = onRequest(async (req, res) => {
@@ -205,8 +214,16 @@ Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin e
                 newThreadId = await createThread();
                 console.log('Nuevo threadId creado:', newThreadId);
 
-                const projectRef = db.collection('Projects').doc(projectId);
-                await projectRef.update({ threadId: newThreadId });
+                const projectRef = db.collection('Projects').where('name', '==', projectId);
+                const projectSnap = await projectRef.get();
+
+                if (!projectSnap.empty) {
+                    const projectDoc = projectSnap.docs[0];
+                    await projectDoc.ref.update({ threadId: newThreadId });
+                } else {
+                    console.error('Proyecto no encontrado con ese nombre.');
+                    return res.status(404).json({ error: 'Proyecto no encontrado.' });
+                }
             }
 
             // Enviar el mensaje completo con toda la información al asistente
@@ -219,8 +236,8 @@ Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin e
             // Esperar a que el run se complete
             await waitForRunCompletion(newThreadId, runId);
 
-            // Ahora podemos obtener el último mensaje del asistente
-            const respuesta = await getLastAssistantMessage(newThreadId);
+            // Ahora podemos obtener el último mensaje del asistente, pasando el runId
+            const respuesta = await getLastAssistantMessage(newThreadId, runId);
             console.log('Última respuesta del asistente:', respuesta);
             return res.status(200).json({ respuesta, threadId: newThreadId });
         } catch (error) {
@@ -229,6 +246,7 @@ Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin e
         }
     });
 });
+
 
 // Nueva función generateAdditionalTags
 exports.generateAdditionalTags = onRequest(async (req, res) => {
@@ -269,7 +287,7 @@ Y el siguiente texto explicativo sobre el proyecto:
 
 "${textoProyecto}"
 
-Genera una lista de etiquetas adicionales relacionadas con la arquitectura que sean relevantes para responder preguntas sobre este proyecto. Devuelve las etiquetas en formato JSON como un array de objetos con las propiedades "name" y "value", sin ningún texto adicional ni bloques de código.
+Genera una lista de etiquetas adicionales relacionadas con la arquitectura que sean relevantes para responder preguntas sobre este proyecto. Si alguna de las etiquetas actuales no tiene valor, también la debes llenar siempre que sea posible. Devuelve las etiquetas en formato JSON como un array de objetos con las propiedades "name" y "value", sin ningún texto adicional ni bloques de código.
 
 Ejemplo de salida:
 [
