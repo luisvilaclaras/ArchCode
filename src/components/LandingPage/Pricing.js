@@ -1,6 +1,6 @@
 export default function Pricing() {
     return (
-        <section className="bg-darkBlue text-white py-16 text-center">
+        <section className="bg-[#001F54] text-white py-16 text-center">
             <h2 className="text-4xl font-bold mb-6">Pricing</h2>
             <div className="bg-gradient-to-r from-blue-500 to-blue-700 text-white p-8 rounded-lg shadow-lg inline-block max-w-md mx-auto">
                 <p className="text-3xl font-bold mb-4">3 days of unlimited access</p>

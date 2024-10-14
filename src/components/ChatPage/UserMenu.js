@@ -24,12 +24,12 @@ export default function UserMenu() {
 
   const handleSignUp = () => {
     setIsOpen(false);
-    router.push('/signup'); 
+    router.push('/'); 
   };
 
   const handleLogin = () => {
     setIsOpen(false);
-    router.push('/login'); 
+    router.push('/'); 
   };
 
   return (

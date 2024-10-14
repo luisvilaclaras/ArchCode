@@ -38,7 +38,7 @@ export default function Menu() {
     <nav className="bg-darkBlue p-6 text-white shadow-lg fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-8">
-          <img src="/path-to-logo.png" alt="Logo" className="h-10" />
+          <img src="images/ArchCode.png" alt="Logo" className="h-10" />
           <ul className="flex space-x-8 text-lg font-semibold">
             <li className="hover:text-lightBlue cursor-pointer">Home</li>
             <li className="hover:text-lightBlue cursor-pointer">Features</li>

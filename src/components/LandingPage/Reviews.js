@@ -49,7 +49,7 @@ export default function Reviews() {
   };
 
   return (
-    <section className="bg-darkBlue text-white py-16 text-center">
+    <section className="bg-[#001F54] text-white py-16 text-center">
       <h2 className="text-4xl font-bold mb-8">What students say</h2>
       <div className="relative max-w-3xl mx-auto flex justify-center items-center space-x-6">
         {/* Review anterior */}

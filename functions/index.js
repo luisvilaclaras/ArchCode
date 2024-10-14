@@ -204,7 +204,7 @@ exports.handleUserQuery = onRequest(async (req, res) => {
         const query = `
 Responde a la siguiente consulta relacionada con los documentos cuyos nombres son: "${documentosString}". 
 Aquí tienes la información relevante del proyecto: ${etiquetasString}. 
-Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin extenderte: ${pregunta}
+Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin extenderte; pero siempre haciendo referencia a los datos proporcionados por el usuario si es posible para dar una respuesta más personalizada. Además, se valora muy positivamente el citar texto de los documentos entre comillas, si es posible. La pregunta: ${pregunta}
 `;
 
         let newThreadId = threadId;
