@@ -1,13 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
-import { motion, AnimatePresence, usePresence } from 'framer-motion';
+import { FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
+import TagItem from './TagItem';
 
 export const initialMandatoryTags = [
-  { name: 'Uso de edificio', value: '', type: 'select', options: ['Vivienda unifamiliar', 'Edificio de viviendas', 'Edificio de oficinas', 'Centro comercial', 'Industrial', 'Patrimonio histórico', 'Equipamiento público', 'Otro'] },
-  { name: 'Zona climática', value: '', type: 'select', options: ['A', 'B', 'C', 'D', 'E'] },
-  { name: 'Altura', value: '', type: 'input' },
-  { name: 'Núm. plantas', value: '', type: 'input' },
-  { name: 'Superficie del edificio', value: '', type: 'input' },
+  {
+    id: uuidv4(),
+    name: 'Uso de edificio',
+    value: '',
+    type: 'select',
+    options: [
+      'Vivienda unifamiliar',
+      'Edificio de viviendas',
+      'Edificio de oficinas',
+      'Centro comercial',
+      'Industrial',
+      'Patrimonio histórico',
+      'Equipamiento público',
+      'Otro',
+    ],
+  },
+  {
+    id: uuidv4(),
+    name: 'Zona climática',
+    value: '',
+    type: 'select',
+    options: ['A', 'B', 'C', 'D', 'E'],
+  },
+  {
+    id: uuidv4(),
+    name: 'Altura',
+    value: '',
+    type: 'input',
+  },
+  {
+    id: uuidv4(),
+    name: 'Núm. plantas',
+    value: '',
+    type: 'input',
+  },
+  {
+    id: uuidv4(),
+    name: 'Superficie del edificio',
+    value: '',
+    type: 'input',
+  },
 ];
 
 export default function ProjectInfo({
@@ -20,9 +58,13 @@ export default function ProjectInfo({
   isGenerating,
   projectName,
   onProjectNameChange,
-  resetTags, // Added resetTags prop
+  resetTags,
 }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [mandatoryTags, setMandatoryTags] = useState(
+    initialMandatoryTags.map(tag => ({ ...tag }))
+  );
+  
   const [customTags, setCustomTags] = useState([]);
   const [displayedTags, setDisplayedTags] = useState([]);
   const [inputMode, setInputMode] = useState('manual');
@@ -34,76 +76,54 @@ export default function ProjectInfo({
     setLocalProjectName(projectName);
   }, [projectName]);
 
-  // useEffect to handle resetTags and reset tags
   useEffect(() => {
     if (resetTags) {
-      setCustomTags(initialMandatoryTags.map(tag => ({ ...tag, value: '' })));
+      setMandatoryTags(
+        initialMandatoryTags.map(tag => ({ ...tag, value: '' }))
+      );
+      setCustomTags([]);
       setDisplayedTags([]);
     }
   }, [resetTags]);
 
-
   useEffect(() => {
-    if (info) {
-      // Mapear nombres de etiquetas obligatorias
-      const defaultTagNames = initialMandatoryTags.map(tag => tag.name);
-
-      // Actualizar etiquetas obligatorias con valores de 'info' o mantenerlas vacías si no hay valores
+    // Reiniciar etiquetas personalizadas y mostradas
+    setCustomTags([]);
+    setDisplayedTags([]);
+  
+    if (info && info.length > 0) {
+      const defaultTagIds = initialMandatoryTags.map(tag => tag.id);
+  
+      // Actualizar etiquetas obligatorias con valores de 'info' sin cambiar los IDs
       const updatedMandatoryTags = initialMandatoryTags.map(tag => {
-        const foundTag = info.find(t => t.name === tag.name);
+        const foundTag = info.find(t => t.id === tag.id);
         return {
           ...tag,
           value: foundTag ? foundTag.value : '',
         };
       });
-
-      // Obtener etiquetas personalizadas de 'info'
-      const newCustomTags = info.filter(tag => !defaultTagNames.includes(tag.name));
-
-      // Actualizar estado de 'customTags' combinando etiquetas obligatorias y personalizadas
-      setCustomTags([...updatedMandatoryTags, ...newCustomTags]);
+  
+      // Obtener etiquetas personalizadas de 'info' manteniendo los IDs
+      const newCustomTags = info.filter(
+        tag => !defaultTagIds.includes(tag.id)
+      );
+  
+      setMandatoryTags(updatedMandatoryTags);
+      setCustomTags(newCustomTags);
+    } else {
+      // Si 'info' está vacío, reiniciar las etiquetas obligatorias
+      setMandatoryTags(
+        initialMandatoryTags.map(tag => ({ ...tag, value: '' }))
+      );
+      setCustomTags([]);
     }
   }, [info]);
+  
 
-  // Manejo de animaciones y aparición incremental de etiquetas
   useEffect(() => {
-    let isCancelled = false;
-
-    if (customTags.length > 0) {
-      const existingTagNames = displayedTags.map(tag => tag.name);
-
-      // Identificar nuevas etiquetas que no están en 'displayedTags'
-      const newTags = customTags.filter(tag => !existingTagNames.includes(tag.name));
-
-      // Función para agregar etiquetas una por una con retraso
-      const addTagsIncrementally = async () => {
-        for (let i = 0; i < newTags.length; i++) {
-          if (isCancelled) break;
-          await new Promise(resolve => setTimeout(resolve, 500)); // Esperar medio segundo
-          if (isCancelled) break;
-          setDisplayedTags(prevTags => [newTags[i], ...prevTags]);
-        }
-      };
-
-      addTagsIncrementally();
-
-      // Actualizar valores de etiquetas existentes sin re-renderizar
-      const updatedExistingTags = displayedTags.map(tag => {
-        const updatedTag = customTags.find(t => t.name === tag.name);
-        return updatedTag ? { ...tag, value: updatedTag.value } : tag;
-      });
-
-      setDisplayedTags(prevTags => {
-        // Evitar duplicados y mantener el orden
-        const uniqueTags = [...updatedExistingTags];
-        return uniqueTags;
-      });
-    }
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [customTags]);
+    // Combinar etiquetas obligatorias y personalizadas
+    setDisplayedTags([...mandatoryTags, ...customTags]);
+  }, [mandatoryTags, customTags]);
 
   const toggleOpen = () => {
     setIsOpen(!isOpen);
@@ -111,8 +131,12 @@ export default function ProjectInfo({
 
   const handleAddTag = () => {
     if (newTag.name.trim() && newTag.value.trim()) {
-      const isMandatoryTag = initialMandatoryTags.some(tag => tag.name === newTag.name);
-      const isExistingTag = customTags.some(tag => tag.name === newTag.name);
+      const isMandatoryTag = initialMandatoryTags.some(
+        tag => tag.name === newTag.name
+      );
+      const isExistingTag = customTags.some(
+        tag => tag.name === newTag.name
+      );
 
       if (isMandatoryTag) {
         alert('No puedes añadir una etiqueta que ya es obligatoria.');
@@ -124,10 +148,16 @@ export default function ProjectInfo({
         return;
       }
 
-      const updatedTags = [...customTags, { ...newTag, type: 'input' }];
+      const newTagWithId = {
+        ...newTag,
+        id: uuidv4(),
+        type: 'input',
+      };
+
+      const updatedTags = [...customTags, newTagWithId];
       setCustomTags(updatedTags);
       setNewTag({ name: '', value: '' });
-      onUpdateInfo(updatedTags);
+      onUpdateInfo([...mandatoryTags, ...updatedTags]);
       setIsProjectInfoUpdated(true);
     }
   };
@@ -136,34 +166,44 @@ export default function ProjectInfo({
     setNewTag({ ...newTag, [field]: value });
   };
 
-  const handleTagEdit = (index, field, value) => {
-    const updatedTags = [...customTags];
-    updatedTags[index][field] = value;
+  const handleTagEdit = (tagName, field, value) => {
+    let updated = false;
 
-    setCustomTags(updatedTags);
+    const updatedMandatoryTags = mandatoryTags.map(tag => {
+      if (tag.name === tagName) {
+        updated = true;
+        return { ...tag, [field]: value };
+      }
+      return tag;
+    });
 
-    // Actualizar 'info' para reflejar los cambios
-    onUpdateInfo(updatedTags);
-    setIsProjectInfoUpdated(true);
+    const updatedCustomTags = customTags.map(tag => {
+      if (tag.name === tagName) {
+        updated = true;
+        return { ...tag, [field]: value };
+      }
+      return tag;
+    });
+
+    if (updated) {
+      setMandatoryTags(updatedMandatoryTags);
+      setCustomTags(updatedCustomTags);
+      onUpdateInfo([...updatedMandatoryTags, ...updatedCustomTags]);
+      setIsProjectInfoUpdated(true);
+    }
   };
 
   const handleDeleteTag = (tagName) => {
-    const tagToDelete = customTags.find(tag => tag.name === tagName);
-
-    if (initialMandatoryTags.some(tag => tag.name === tagToDelete.name)) {
-      // No permitir eliminar etiquetas obligatorias
+    if (initialMandatoryTags.some(tag => tag.name === tagName)) {
       alert('No puedes eliminar una etiqueta obligatoria.');
       return;
     }
 
-    const updatedTags = customTags.filter(tag => tag.name !== tagName);
-    setCustomTags(updatedTags);
-    onUpdateInfo(updatedTags);
+    const updatedCustomTags = customTags.filter(tag => tag.name !== tagName);
+    setCustomTags(updatedCustomTags);
+    onUpdateInfo([...mandatoryTags, ...updatedCustomTags]);
     setIsProjectInfoUpdated(true);
     onManualEdit();
-
-    // También actualizar 'displayedTags'
-    setDisplayedTags(prevTags => prevTags.filter(tag => tag.name !== tagName));
   };
 
   const handleModeSwitch = (mode) => {
@@ -171,19 +211,7 @@ export default function ProjectInfo({
   };
 
   const handleSave = () => {
-    const mandatoryTagsWithValues = initialMandatoryTags.map(tag => ({
-      name: tag.name,
-      value: customTags.find(t => t.name === tag.name)?.value || '',
-      type: tag.type,
-      options: tag.options || [],
-    }));
-
-    const customTagsOnly = customTags.filter(
-      tag => !initialMandatoryTags.some(mTag => mTag.name === tag.name) && tag.value.trim() !== ''
-    );
-
-    const projectData = [...mandatoryTagsWithValues, ...customTagsOnly];
-
+    const projectData = [...mandatoryTags, ...customTags];
     onSave(projectData, localProjectName);
   };
 
@@ -196,7 +224,7 @@ export default function ProjectInfo({
   };
 
   return (
-    <div className="bg-[#001F54] p-4 rounded-lg shadow-lg border border-white relative">
+    <div className="bg-[#001F54] p-4 rounded-lg shadow-lg border border-white relative overflow-x-hidden">
       {/* Encabezado */}
       <div className="flex justify-center items-center mb-2">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -252,7 +280,7 @@ export default function ProjectInfo({
                   </button>
                 </div>
 
-                {/* Campos de Entrada con altura fija */}
+                {/* Campos de Entrada */}
                 <div className="flex flex-col items-center gap-2 mt-2" style={{ minHeight: '140px' }}>
                   {inputMode === 'manual' && (
                     <>
@@ -302,64 +330,18 @@ export default function ProjectInfo({
 
               {/* Columna Derecha - Deslizable */}
               <div className="overflow-y-auto max-h-[160px] grid grid-cols-3 gap-2 w-2/3 custom-scrollbar ml-2 mb-4">
-                {displayedTags.map((tag) => {
-                  const [isPresent] = usePresence();
+                <AnimatePresence>
+                {displayedTags.map((tag) => (
+                  <TagItem
+                    key={tag.id}
+                    tag={tag}
+                    initialMandatoryTags={initialMandatoryTags}
+                    handleDeleteTag={handleDeleteTag}
+                    handleTagEdit={handleTagEdit}
+                  />
+                ))}
 
-                  return (
-                    <motion.div
-                      key={tag.name}
-                      initial={isPresent ? { opacity: 0, x: -50 } : false}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 50 }}
-                      transition={{ duration: 0.6 }}
-                      className="relative flex flex-col p-2 border border-gray-300 rounded-lg bg-[#003366] text-white shadow-md"
-                      style={{ fontSize: '0.75rem' }}
-                    >
-                      {!initialMandatoryTags.some(mTag => mTag.name === tag.name) && (
-                        <button
-                          onClick={() => handleDeleteTag(tag.name)}
-                          className="absolute top-1 right-1 text-red-200 hover:text-red-400"
-                        >
-                          <FaTimes />
-                        </button>
-                      )}
-                      <label className="block mb-1 text-xs font-semibold">{tag.name}</label>
-                      {tag.type === 'select' ? (
-                        <select
-                          value={tag.value}
-                          onChange={(e) =>
-                            handleTagEdit(
-                              customTags.findIndex(t => t.name === tag.name),
-                              'value',
-                              e.target.value
-                            )
-                          }
-                          className="p-1 mt-1 border border-gray-300 rounded-md text-xs bg-white text-black"
-                        >
-                          <option value="">Selecciona una opción</option>
-                          {tag.options.map((option, idx) => (
-                            <option key={idx} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={tag.value}
-                          onChange={(e) =>
-                            handleTagEdit(
-                              customTags.findIndex(t => t.name === tag.name),
-                              'value',
-                              e.target.value
-                            )
-                          }
-                          className="p-1 mt-1 border border-gray-300 rounded-md text-xs bg-white text-black"
-                        />
-                      )}
-                    </motion.div>
-                  );
-                })}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -394,6 +376,9 @@ export default function ProjectInfo({
           opacity: 0.9;
         }
 
+        .custom-scrollbar {
+          overflow-x: hidden;
+        }
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
