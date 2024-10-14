@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { auth, db } from '../../../firebase-credentials';
 import { doc, setDoc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore";
@@ -11,6 +11,8 @@ import Chat from '@/components/ChatPage/Chat';
 import UserMenu from '@/components/ChatPage/UserMenu';
 import { v4 as uuidv4 } from 'uuid'; 
 import ConfirmationModal from '@/components/Modals/ConfirmationModal';
+import SuccessModal from '@/components/Modals/SuccessModal';
+import WarningModal from '@/components/Modals/WarningModal';
 
 
 export default function HomePage() {
@@ -28,9 +30,22 @@ export default function HomePage() {
   const [isGeneratingTags, setIsGeneratingTags] = useState(false); // Nuevo estado para la generación de etiquetas
   const [showConfirmation, setShowConfirmation] = useState(false);  // Nuevo estado para mostrar el modal
   const [resetTagsTrigger, setResetTagsTrigger] = useState(false);
+  const handleSendMessageResolveRef = useRef(null);
+
+  // Estados para el cambio de proyecto
   const [pendingProjectId, setPendingProjectId] = useState(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
+  // Variables y estados para manejar los modales de advertencia
+
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningMessage, setWarningMessage] = useState('');
+  const [warningType, setWarningType] = useState(null);
+  const [pendingQuestion, setPendingQuestion] = useState('');
+
+  // Estados para el modal de éxito
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const router = useRouter(); 
 
@@ -319,14 +334,18 @@ export default function HomePage() {
         await updateDoc(projectRef, { content: projectContent });
   
         setLocalProjectData(prevData => ({ ...prevData, [selectedProject.projectId]: projectContent }));
-        alert('Proyecto actualizado con éxito.');
+        // Mostrar el modal de éxito
+        setSuccessMessage('Proyecto actualizado con éxito.');
+        setShowSuccessModal(true);
       } else {
         // Crear nuevo proyecto
         const newProjectId = await createNewProject(projectContent);
         if (newProjectId) {
-          alert('Proyecto creado con éxito.');
+          // Mostrar el modal de éxito
+          setSuccessMessage('Proyecto creado con éxito.');
+          setShowSuccessModal(true);
           // Establecer el proyecto recién creado como seleccionado
-          const projectDisplayName = `Proyecto ${userData.projects.length + 1}`;
+          const projectDisplayName = `Proyecto ${(userData.projects && userData.projects.length) || 0}`;
           setSelectedProject({ projectId: newProjectId, name: projectDisplayName });
         }
       }
@@ -335,9 +354,11 @@ export default function HomePage() {
   
     } catch (error) {
       console.error('Error al guardar el proyecto:', error);
+      // Podrías crear un modal de error similar si lo deseas
       alert('Error al guardar el proyecto.');
     }
   };
+  
   
 
   const handleUpdateProjectInfo = (newInfo) => {
@@ -394,11 +415,85 @@ export default function HomePage() {
   };
 
   const handleSendMessage = async (question) => {
+    // Verificar si hay documentos seleccionados
+    if (selectedDocuments.length === 0) {
+      return new Promise((resolve) => {
+        handleSendMessageResolveRef.current = resolve;
+        setWarningMessage('Es necesario seleccionar como mínimo un documento para poder realizar una pregunta.');
+        setWarningType('noDocuments');
+        setShowWarningModal(true);
+      });
+    }
+
+    // Verificar si hay cambios no guardados en el proyecto
+    if (isProjectInfoUpdated) {
+      return new Promise((resolve) => {
+        handleSendMessageResolveRef.current = resolve;
+        setWarningMessage('¿Seguro que quieres hacer la pregunta sin guardar la última información del proyecto?');
+        setWarningType('unsavedChanges');
+        setPendingQuestion(question);
+        setShowWarningModal(true);
+      });
+    }
+
+    // Verificar si la información del proyecto está vacía
+    const hasProjectInfo = projectInfo.some(tag => tag.value && tag.value.trim() !== '');
+    if (!hasProjectInfo) {
+      return new Promise((resolve) => {
+        handleSendMessageResolveRef.current = resolve;
+        setWarningMessage('¿Seguro que quieres enviar una pregunta sin dar información sobre el proyecto? ¡Cuanta más información proporciones, más concreta será la respuesta!');
+        setWarningType('noProjectInfo');
+        setPendingQuestion(question);
+        setShowWarningModal(true);
+      });
+    }
+
+    // Si todo está bien, enviar la pregunta
+    const respuesta = await handleUserQuery(question);
+    return { sent: true, responseText: respuesta };
+  };
+  
+  
+  
+
+  const handleWarningConfirm = async () => {
+    setShowWarningModal(false);
+  
+    if (warningType === 'noDocuments') {
+      // Solo cerramos el modal; no permitimos enviar el mensaje
+      handleSendMessageResolveRef.current({ sent: false });
+      return;
+    }
+  
+    if (warningType === 'unsavedChanges' || warningType === 'noProjectInfo') {
+      // Continuar y enviar la pregunta
+      if (warningType === 'unsavedChanges') {
+        setIsProjectInfoUpdated(false);
+      }
+      const respuesta = await handleUserQuery(pendingQuestion);
+      setPendingQuestion('');
+      // Devolver el resultado al Chat
+      handleSendMessageResolveRef.current({ sent: true, responseText: respuesta });
+    }
+  };
+  
+  const handleWarningCancel = () => {
+    setShowWarningModal(false);
+    setPendingQuestion('');
+    // Devolver el resultado al Chat indicando que no se envió el mensaje
+    handleSendMessageResolveRef.current({ sent: false });
+  };
+  
+  
+  
+  
+  
+  const sendMessage = async (question) => {
     // Llamar a la función que interactúa con Firebase Functions
     const respuesta = await handleUserQuery(question);
-    // Devuelve la respuesta para que el componente `Chat` la maneje
-    return respuesta;
+    // Puedes manejar el resultado aquí si es necesario
   };
+  
 
   // Nueva función para manejar la generación automática de etiquetas
   const handleGenerateAutomaticTags = async (automaticText) => {
@@ -565,8 +660,21 @@ export default function HomePage() {
           onConfirm={handleConfirmChangeProject}
         />
       )}
-
-      
+      {/* Modal de creación/actualización de proyecto */}
+      {showSuccessModal && (
+        <SuccessModal
+          message={successMessage}
+          onClose={() => setShowSuccessModal(false)}
+        />
+      )}
+      {showWarningModal && (
+        <WarningModal
+          message={warningMessage}
+          onConfirm={handleWarningConfirm}
+          onCancel={handleWarningCancel}
+          onlyConfirm={warningType === 'noDocuments'}
+        />
+      )}
     </div>
   );
 }

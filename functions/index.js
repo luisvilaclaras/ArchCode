@@ -214,14 +214,13 @@ Con todo esto, responde a la siguiente pregunta dando solo la conclusión, sin e
                 newThreadId = await createThread();
                 console.log('Nuevo threadId creado:', newThreadId);
 
-                const projectRef = db.collection('Projects').where('name', '==', projectId);
+                const projectRef = db.collection('Projects').doc(projectId.projectId);
                 const projectSnap = await projectRef.get();
 
-                if (!projectSnap.empty) {
-                    const projectDoc = projectSnap.docs[0];
-                    await projectDoc.ref.update({ threadId: newThreadId });
+                if (projectSnap.exists) {
+                    await projectRef.update({ threadId: newThreadId });
                 } else {
-                    console.error('Proyecto no encontrado con ese nombre.');
+                    console.error('Proyecto no encontrado con ese ID.');
                     return res.status(404).json({ error: 'Proyecto no encontrado.' });
                 }
             }
