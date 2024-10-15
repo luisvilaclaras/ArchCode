@@ -8,14 +8,15 @@ import FAQ from '@/components/LandingPage/FAQ';
 
 export default function Home() {
   return (
+    <div style={{ backgroundColor: '#001F54', transform: 'scale(1.1)', transformOrigin: 'top left', margin: 0, padding: 0, boxSizing: 'border-box', overflowX: 'hidden' }}>
     <div>
       {/* Menu Component */}
       <Menu />
 
-      <section className="hero bg-[#001F54] text-white h-screen flex items-center justify-center pt-24"> 
-  <div className="grid grid-cols-2 gap-8 max-w-7xl mx-auto px-10 items-center">
+      <section className="hero bg-[#001F54] text-white h-auto flex items-center justify-center pt-40 pb-20"> 
+  <div className="grid grid-cols-2 gap-8 max-w-7xl mx-auto px-10 items-center"> {/* px-10 mantiene el mismo relleno en ambos lados */}
     <div className="text-left">
-      <h1 className="text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura </h1>
+      <h1 className="text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura</h1>
       <p className="text-xl mb-6">Acelera tus proyectos con la potencia de la IA y ahorra tiempo</p>
       <button className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-3 px-8 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
         Try For Free
@@ -34,7 +35,7 @@ export default function Home() {
     <div className="flex justify-center">
       <video 
         src="https://www.w3schools.com/html/mov_bbb.mp4" 
-        className="w-full max-w-lg rounded-lg shadow-lg"
+        className="w-full max-w-xl rounded-lg shadow-lg"  
         autoPlay 
         loop 
         muted
@@ -48,31 +49,31 @@ export default function Home() {
 
 
 
-
       {/* Scrolling Images Section */}
       <ScrollingImages />
 
       {/* Video with explanation Section */}
       <section className="bg-[#001F54] text-white py-16">
-  <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-6">
-    {/* Video */}
-    <div className="space-y-6">
-      <video className="w-full rounded-md shadow-lg mx-auto" autoPlay loop muted>
-        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-    </div>
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-6">
+        {/* Video */}
+        <div className="space-y-6">
+        <video className="w-full rounded-md shadow-lg" autoPlay loop muted>
+              <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+        </div>
 
-    {/* Explicación del video */}
-    <div className="max-w-sm"> {/* Reducimos el ancho máximo del texto */}
-      <span className="inline-block bg-green-500 text-white text-xs px-2 py-1 rounded-full mb-4">✔ Respuestas Instantáneas</span>
-      <h2 className="text-lg font-bold mb-3 leading-snug">Encuentra Respuesta a Tus Preguntas al Instante</h2>
-      <p className="mb-4 text-sm leading-relaxed">
-        Con solo un clic, nuestra herramienta te proporciona la interpretación correcta de los códigos técnicos de arquitectura. Ya sea una normativa del CTE o un detalle específico sobre un sistema constructivo, nuestra IA te ofrece la guía adecuada.
-      </p>
-    </div>
-  </div>
-</section>
+        {/* Explicación del video */}
+        <div className="max-w-sm"> 
+          <span className="inline-block bg-green-500 text-white text-xs px-2 py-1 rounded-full mb-4">✔ Respuestas Instantáneas</span>
+          <h2 className="text-lg font-bold mb-3 leading-snug">Encuentra Respuesta a Tus Preguntas al Instante</h2>
+          <p className="mb-4 text-sm leading-relaxed">
+            Con solo un clic, nuestra herramienta te proporciona la interpretación correcta de los códigos técnicos de arquitectura. Ya sea una normativa del CTE o un detalle específico sobre un sistema constructivo, nuestra IA te ofrece la guía adecuada.
+          </p>
+        </div>
+      </div>
+    </section>
+
 
 
 
@@ -229,6 +230,7 @@ export default function Home() {
 </section>
 
 
+    </div>
     </div>
   );
 }

@@ -56,7 +56,7 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
 
   // Estilos comunes para ambos selectores
   const commonSelectorClasses =
-    'py-2 px-3 rounded-md bg-[#001F54] text-white border border-white focus:outline-none focus:ring-2 focus:ring-white transition duration-200';
+    'py-2 px-3 rounded-md bg-gray-200 text-gray-700 border border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 transition duration-200';
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
@@ -77,7 +77,7 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
           ))}
         </select>
         <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-          <FaChevronDown className="text-white" />
+          <FaChevronDown className="text-gray-600" />
         </div>
       </div>
 
@@ -96,21 +96,21 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
         </button>
         <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
           {isDropdownOpen ? (
-            <FaChevronUp className="text-white" />
+            <FaChevronUp className="text-gray-600" />
           ) : (
-            <FaChevronDown className="text-white" />
+            <FaChevronDown className="text-gray-600" />
           )}
         </div>
 
         {isDropdownOpen && (
-          <div className="absolute mt-1 w-full bg-[#001F54] text-white rounded-md shadow-lg border border-white z-10 max-h-60 overflow-auto">
+          <div className="absolute mt-1 w-full bg-gray-200 text-gray-700 rounded-md shadow-lg border border-gray-400 z-10 max-h-60 overflow-auto">
             {uniqueDocuments.map((doc, index) => (
-              <label key={index} className="flex items-center px-4 py-2 hover:bg-[#003366]">
+              <label key={index} className="flex items-center px-4 py-2 hover:bg-gray-300">
                 <input
                   type="checkbox"
                   checked={selectedDocuments.includes(doc)}
                   onChange={() => handleDocumentToggle(doc)}
-                  className="form-checkbox h-5 w-5 text-blue-300"
+                  className="form-checkbox h-5 w-5 text-blue-600"
                 />
                 <span className="ml-2">
                   {nationalDocuments.includes(doc) ? `★ ${doc}` : doc}

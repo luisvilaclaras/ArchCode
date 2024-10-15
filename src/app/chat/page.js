@@ -13,6 +13,8 @@ import { v4 as uuidv4 } from 'uuid';
 import ConfirmationModal from '@/components/Modals/ConfirmationModal';
 import SuccessModal from '@/components/Modals/SuccessModal';
 import WarningModal from '@/components/Modals/WarningModal';
+import PdfRequestModal from '@/components/Modals/PdfRequestModal';
+import OpinionModal from '@/components/Modals/OpinionModal';
 
 
 export default function HomePage() {
@@ -31,6 +33,8 @@ export default function HomePage() {
   const [showConfirmation, setShowConfirmation] = useState(false);  // Nuevo estado para mostrar el modal
   const [resetTagsTrigger, setResetTagsTrigger] = useState(false);
   const handleSendMessageResolveRef = useRef(null);
+  const [isPdfRequestModalOpen, setIsPdfRequestModalOpen] = useState(false);
+  const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false); // Estado para el modal de opinión
 
   // Estados para el cambio de proyecto
   const [pendingProjectId, setPendingProjectId] = useState(null);
@@ -204,7 +208,23 @@ export default function HomePage() {
       }
     }
   };
-  
+
+
+  const openOpinionModal = () => {
+    setIsOpinionModalOpen(true);
+  };
+
+  const closeOpinionModal = () => {
+    setIsOpinionModalOpen(false);
+  };
+
+  const openPdfRequestModal = () => {
+    setIsPdfRequestModalOpen(true);
+  };
+
+  const closePdfRequestModal = () => {
+    setIsPdfRequestModalOpen(false);
+  };
 
   const handleNewProject = () => {
     if (isProjectInfoUpdated) {
@@ -242,7 +262,7 @@ export default function HomePage() {
   
       // Obtener el número de proyectos del usuario
       const projectCount = userData.projects ? userData.projects.length : 0;
-      const projectDisplayName = `Proyecto ${projectCount + 1}`;
+      const projectDisplayName = `Proyecto ${projectCount + 2}`;
   
       // Generar un ID único para el proyecto
       const projectId = uuidv4();
@@ -603,25 +623,54 @@ export default function HomePage() {
   }
 
   return (
-    
     <div className="flex flex-col md:flex-row h-screen overflow-hidden">
       <div className="flex flex-col w-48 bg-[#F4EDE4]">
-      <ProjectSelector 
-        projects={userData?.projects || []} 
-        onSelect={handleSelectProject} 
-        onNewProject={handleNewProject} 
-        selectedProject={selectedProject}
-      />
+        <ProjectSelector 
+          projects={userData?.projects || []} 
+          onSelect={handleSelectProject} 
+          onNewProject={handleNewProject} 
+          selectedProject={selectedProject}
+        />
       </div>
+  
       <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
-        <div className="mb-4">
-          <DocumentSelector 
-            availablePDFs={availablePDFs} 
-            selectedRegion={selectedRegion}
-            onRegionSelect={handleRegionSelect}
-            onSelect={handleDocumentSelect}
-          />
+        {/* Contenedor para los botones y el UserMenu */}
+        <div className="flex items-center justify-between mb-4">
+          {/* Selector de Documentos */}
+          <div className="flex">
+            <DocumentSelector 
+              availablePDFs={availablePDFs} 
+              selectedRegion={selectedRegion}
+              onRegionSelect={handleRegionSelect}
+              onSelect={handleDocumentSelect}
+            />
+          </div>
+  
+          {/* Contenedor flex para los botones y el UserMenu */}
+          <div className="flex items-center space-x-4">
+            {/* Botón para abrir el modal de solicitud de PDF */}
+            <button
+              onClick={openPdfRequestModal}
+              className="py-2 px-4 bg-gray-800 text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
+            >
+              ¿No encuentras el pdf que necesitas?
+            </button>
+  
+            {/* Botón para abrir el modal de opinión */}
+            <button
+              onClick={openOpinionModal}
+              className="py-2 px-4 bg-gray-800 text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
+            >
+              Dejar una opinión
+            </button>
+  
+            {/* UserMenu */}
+            <div className="ml-auto">
+              <UserMenu />
+            </div>
+          </div>
         </div>
+  
         <ProjectInfo 
           info={projectInfo} 
           onUpdateInfo={handleUpdateProjectInfo} 
@@ -634,6 +683,7 @@ export default function HomePage() {
           onProjectNameChange={handleProjectNameChange} 
           resetTags={resetTagsTrigger}
         />
+        
         <Chat 
           projectInfo={projectInfo} 
           selectedDocuments={selectedDocuments}
@@ -641,26 +691,20 @@ export default function HomePage() {
           onSendMessage={handleSendMessage}
         />
       </div>
-
-      <div className="absolute top-4 right-4">
-        <UserMenu />
-      </div>
-
-      {/* Modal de confirmación nuevo proyecto sin guardar*/}
+  
+      {/* Modales */}
       {showConfirmation && (
         <ConfirmationModal 
           message="¿Estás seguro de que quieres crear un nuevo proyecto sin guardar el actual? Se podría perder información."
           onConfirm={handleConfirmNewProject}
         />
       )}
-      {/* Modal de confirmación cambio de proyecto sin guardar */}
       {showConfirmationModal && (
         <ConfirmationModal 
           message="Tienes cambios sin guardar en el proyecto actual. ¿Deseas continuar sin guardar?"
           onConfirm={handleConfirmChangeProject}
         />
       )}
-      {/* Modal de creación/actualización de proyecto */}
       {showSuccessModal && (
         <SuccessModal
           message={successMessage}
@@ -675,6 +719,16 @@ export default function HomePage() {
           onlyConfirm={warningType === 'noDocuments'}
         />
       )}
+      {isPdfRequestModalOpen && (
+        <PdfRequestModal onClose={closePdfRequestModal} />
+      )}
+      {isOpinionModalOpen && (
+        <OpinionModal onClose={closeOpinionModal} />
+      )}
     </div>
   );
+  
+  
+  
+  
 }

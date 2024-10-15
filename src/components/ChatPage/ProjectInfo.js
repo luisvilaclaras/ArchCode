@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -61,13 +61,15 @@ export default function ProjectInfo({
   resetTags,
 }) {
   const [isOpen, setIsOpen] = useState(true);
+  const projectInfoRef = useRef(null); // Referencia para el componente
+
   const [mandatoryTags, setMandatoryTags] = useState(
     initialMandatoryTags.map(tag => ({ ...tag }))
   );
   
   const [customTags, setCustomTags] = useState([]);
   const [displayedTags, setDisplayedTags] = useState([]);
-  const [inputMode, setInputMode] = useState('manual');
+  const [inputMode, setInputMode] = useState('automatic');
   const [newTag, setNewTag] = useState({ name: '', value: '' });
   const [automaticText, setAutomaticText] = useState('');
   const [localProjectName, setLocalProjectName] = useState(projectName);
@@ -124,6 +126,19 @@ export default function ProjectInfo({
     // Combinar etiquetas obligatorias y personalizadas
     setDisplayedTags([...mandatoryTags, ...customTags]);
   }, [mandatoryTags, customTags]);
+
+  const handleClickOutside = (event) => {
+    if (projectInfoRef.current && !projectInfoRef.current.contains(event.target)) {
+      setIsOpen(false); // Cerrar el desplegable si se hace clic fuera
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const toggleOpen = () => {
     setIsOpen(!isOpen);
@@ -224,26 +239,29 @@ export default function ProjectInfo({
   };
 
   return (
-    <div className="bg-[#001F54] p-4 rounded-lg shadow-lg border border-white relative overflow-x-hidden">
+    <div
+      ref={projectInfoRef} // Aplica la referencia aquí
+      className="bg-gray-200 p-4 rounded-lg shadow-lg border border-gray-300 relative overflow-x-hidden"
+    >
       {/* Encabezado */}
       <div className="flex justify-center items-center mb-2">
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-[#001F54] flex items-center gap-2">
           Información del proyecto:
         </h2>
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2 ml-4">
+        <h2 className="text-lg font-semibold text-[#001F54] flex items-center gap-2 ml-4">
           {localProjectName}
-          <button onClick={handleProjectNameEdit} className="text-gray-200 hover:text-gray-400">
+          <button onClick={handleProjectNameEdit} className="text-gray-600 hover:text-gray-800">
             <FaEdit />
           </button>
         </h2>
         <button
           onClick={toggleOpen}
-          className="ml-4 text-gray-200 hover:text-gray-400"
+          className="ml-4 text-gray-600 hover:text-gray-800"
         >
           {isOpen ? <FaChevronUp /> : <FaChevronDown />}
         </button>
       </div>
-
+  
       {/* Contenido */}
       <AnimatePresence initial={false}>
         {isOpen && (
@@ -279,7 +297,7 @@ export default function ProjectInfo({
                     Manual
                   </button>
                 </div>
-
+  
                 {/* Campos de Entrada */}
                 <div className="flex flex-col items-center gap-2 mt-2" style={{ minHeight: '140px' }}>
                   {inputMode === 'manual' && (
@@ -287,14 +305,14 @@ export default function ProjectInfo({
                       <input
                         type="text"
                         placeholder="Nombre de la etiqueta"
-                        className="w-full p-1 border border-gray-300 rounded-lg bg-[#F4EDE4]"
+                        className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50"
                         value={newTag.name}
                         onChange={(e) => handleCustomTagChange('name', e.target.value)}
                       />
                       <input
                         type="text"
                         placeholder="Valor de la etiqueta"
-                        className="w-full p-1 border border-gray-300 rounded-lg bg-[#F4EDE4]"
+                        className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50"
                         value={newTag.value}
                         onChange={(e) => handleCustomTagChange('value', e.target.value)}
                       />
@@ -306,12 +324,12 @@ export default function ProjectInfo({
                       </button>
                     </>
                   )}
-
+  
                   {inputMode === 'automatic' && (
                     <>
                       <textarea
                         placeholder="Ingresa una descripción del proyecto"
-                        className="w-full p-1 border border-gray-300 rounded-lg bg-[#F4EDE4]"
+                        className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50"
                         style={{ height: '100px' }}
                         value={automaticText}
                         onChange={(e) => setAutomaticText(e.target.value)}
@@ -327,24 +345,23 @@ export default function ProjectInfo({
                   )}
                 </div>
               </div>
-
+  
               {/* Columna Derecha - Deslizable */}
-              <div className="overflow-y-auto max-h-[160px] grid grid-cols-3 gap-2 w-2/3 custom-scrollbar ml-2 mb-4">
+              <div className="overflow-y-auto max-h-[160px] grid grid-cols-4 gap-2 w-2/3 custom-scrollbar ml-2 mb-4">
                 <AnimatePresence>
-                {displayedTags.map((tag) => (
-                  <TagItem
-                    key={tag.id}
-                    tag={tag}
-                    initialMandatoryTags={initialMandatoryTags}
-                    handleDeleteTag={handleDeleteTag}
-                    handleTagEdit={handleTagEdit}
-                  />
-                ))}
-
+                  {displayedTags.map((tag) => (
+                    <TagItem
+                      key={tag.id}
+                      tag={tag}
+                      initialMandatoryTags={initialMandatoryTags}
+                      handleDeleteTag={handleDeleteTag}
+                      handleTagEdit={handleTagEdit}
+                    />
+                  ))}
                 </AnimatePresence>
               </div>
             </div>
-
+  
             {/* Botón Guardar Proyecto */}
             <div className="absolute bottom-0 right-4">
               <button
@@ -357,7 +374,7 @@ export default function ProjectInfo({
           </motion.div>
         )}
       </AnimatePresence>
-
+  
       {/* Estilos comunes para los botones */}
       <style jsx>{`
         .button-common-style {
@@ -375,7 +392,7 @@ export default function ProjectInfo({
         .button-common-style:hover {
           opacity: 0.9;
         }
-
+  
         .custom-scrollbar {
           overflow-x: hidden;
         }
@@ -396,4 +413,4 @@ export default function ProjectInfo({
       `}</style>
     </div>
   );
-}
+}  

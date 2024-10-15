@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FaPaperPlane } from 'react-icons/fa';
 import { UserMessage } from './UserMessage';
-import { AssistantMessage} from './AssistantMessage';
+import { AssistantMessage } from './AssistantMessage';
 
 export default function Chat({ onSendMessage }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const inputRef = useRef(null);
 
   const handleSendMessage = async () => {
     if (input.trim()) {
@@ -72,10 +73,22 @@ export default function Chat({ onSendMessage }) {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Evitar salto de línea
       handleSendMessage();
     }
   };
+
+  // Ajustar la altura del textarea
+  const adjustTextareaHeight = () => {
+    const textarea = inputRef.current;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`; // Límite máximo de 200px de altura
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight(); // Ajustar al iniciar y cuando cambie el valor del input
+  }, [input]);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -89,22 +102,24 @@ export default function Chat({ onSendMessage }) {
         ))}
       </div>
       <div className="p-2 border-t border-gray-200 flex justify-center bg-[#001F54]">
-        <div className="relative w-full max-w-md">
-          <input
-            type="text"
+        <div className="relative w-full max-w-xl"> {/* Cambié de max-w-lg a max-w-xl */}
+          <textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="w-full py-1 pl-4 pr-8 rounded-full bg-[#F5F5F5] border-none focus:outline-none text-xs"
+            rows="1"
+            className="w-full py-2 pl-4 pr-10 rounded-lg bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
             placeholder="Escribe un mensaje"
             disabled={isWaitingForResponse}
+            style={{ maxHeight: '200px' }} // Limitar la altura máxima
           />
           <button
             onClick={handleSendMessage}
-            className={`absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none ${isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none ${isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isWaitingForResponse}
           >
-            <FaPaperPlane className="text-sm" />
+            <FaPaperPlane className="text-base" />
           </button>
         </div>
       </div>

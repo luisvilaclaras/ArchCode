@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { FaUserCircle } from 'react-icons/fa';
-import { useRouter } from 'next/navigation'; 
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
+import { useRouter } from 'next/navigation'; // Para redirigir al usuario
 
 export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
-  const router = useRouter(); 
+  const { logout } = useAuth(); // Obtener la función de logout desde el contexto
+  const router = useRouter(); // Usar el router para redirigir al menú principal
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -14,68 +14,38 @@ export default function UserMenu() {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      setIsOpen(false);
-      router.push('/'); 
+      await logout(); // Cierra la sesión del usuario
+      router.push('/'); // Redirige al usuario al menú principal
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      console.error('Error al cerrar sesión:', error);
     }
   };
 
-  const handleSignUp = () => {
-    setIsOpen(false);
-    router.push('/'); 
-  };
-
-  const handleLogin = () => {
-    setIsOpen(false);
-    router.push('/'); 
-  };
-
   return (
-    <div className="relative">
-      <button 
-        className="absolute top-2 right-4 flex items-center space-x-2 p-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 focus:outline-none"
-        onClick={toggleMenu}
-      >
-        <FaUserCircle className="text-2xl" />
-        {/* Correo electrónico visible solo en pantallas medianas o mayores */}
-        {currentUser && (
-          <span className="hidden lg:inline ml-2">{currentUser.email}</span>
-        )}
-      </button>
+    <div className="relative inline-block text-left">
+      {/* Botón para abrir el menú */}
+      <div>
+        <button
+          onClick={toggleMenu}
+          className="inline-flex justify-center w-full rounded-md border border-gray-700 shadow-sm px-4 py-2 bg-gray-800 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none"
+        >
+          <FaUserCircle className="mr-2" />
+          Usuario
+        </button>
+      </div>
 
+      {/* Opciones del menú */}
       {isOpen && (
-        <div className="absolute right-0 mt-12 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-          {currentUser ? (
-            <>
-              <a href="#" className="block px-4 py-2 text-gray-800 hover:bg-gray-100">Configuración</a>
-              <a href="#" className="block px-4 py-2 text-gray-800 hover:bg-gray-100">Acceder al plan premium</a>
-              <div className="border-t my-2"></div>
-              <button 
-                onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-              >
-                Cerrar sesión
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleSignUp}
-                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-              >
-                Crear cuenta
-              </button>
-              <button
-                onClick={handleLogin}
-                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-              >
-                Iniciar sesión
-              </button>
-              
-            </>
-          )}
+        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+          <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+            <button
+              onClick={handleLogout} // Llama a la función de logout
+              className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white w-full text-left"
+              role="menuitem"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
       )}
     </div>
