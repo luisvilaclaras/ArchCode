@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { auth, db } from '../../../firebase-credentials';
-import { doc, setDoc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, addDoc, collection, arrayUnion } from "firebase/firestore";
 import ProjectSelector from '@/components/ChatPage/ProjectSelector';
 import DocumentSelector from '@/components/ChatPage/DocumentSelector';
 import ProjectInfo, { initialMandatoryTags } from '@/components/ChatPage/ProjectInfo';
@@ -36,6 +36,8 @@ export default function HomePage() {
   const [isPdfRequestModalOpen, setIsPdfRequestModalOpen] = useState(false);
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false); // Estado para el modal de opinión
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(true);
+  const [chatMessages, setChatMessages] = useState([]);
+
 
   // Estados para el cambio de proyecto
   const [pendingProjectId, setPendingProjectId] = useState(null);
@@ -149,65 +151,76 @@ export default function HomePage() {
   };
   
 
-  const handleProjectSelect = async (projectId) => {
-    setIsProjectInfoUpdated(false);
-    setIsCreatingNewProject(false);
-    setPendingProjectInfo([]);
-    setThreadId(null); // Reiniciar threadId al cambiar de proyecto
-  
-    if (!projectId) {
-      setProjectInfo([]);
-      return;
-    }
-  
-    // Obtener el nombre del proyecto
-    const project = userData.projects.find(proj => proj.projectId === projectId);
-    const projectName = project ? project.name : 'Sin nombre';
-  
-    // Establecer el proyecto seleccionado
-    setSelectedProject({ projectId, name: projectName });
-  
-    // Si los datos del proyecto ya están en memoria local, se usan esos datos
-    if (localProjectData[projectId]) {
-      const storedData = localProjectData[projectId];
-      // Procesar storedData para setProjectInfo
-      const updatedInfo = initialMandatoryTags.map(tag => ({
-        ...tag,
-        value: storedData.find(t => t.name === tag.name)?.value || tag.value,
-      }));
-      const customTagsOnly = storedData.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
-      setProjectInfo([...updatedInfo, ...customTagsOnly]);
+  const handleSelectProject = (projectId) => {
+    if (isProjectInfoUpdated) {
+      // Si hay cambios no guardados, mostrar el modal de confirmación
+      setPendingProjectId(projectId);
+      setShowConfirmationModal(true);
     } else {
-      // Si no, se cargan los datos desde Firestore
-      try {
-        const projectRef = doc(db, "Projects", projectId);
-        const projectSnap = await getDoc(projectRef);
-        if (projectSnap.exists()) {
-          const projectContent = projectSnap.data().content || [];
-          const updatedInfo = initialMandatoryTags.map(tag => ({
-            ...tag,
-            value: projectContent.find(t => t.name === tag.name)?.value || tag.value,
-          }));
-          const customTagsOnly = projectContent.filter(tag => !initialMandatoryTags.some(mt => mt.name === tag.name));
-          setProjectInfo([...updatedInfo, ...customTagsOnly]);
-          setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
+      // Si no hay cambios, cambiar de proyecto inmediatamente
+      handleProjectSelect(projectId);
+    }
+  };
   
-          // Establecer el threadId si existe en Firestore
-          const existingThreadId = projectSnap.data().threadId;
-          if (existingThreadId) {
-            setThreadId(existingThreadId);
-          } else {
-            setThreadId(null);
-          }
+  const handleProjectSelect = async (projectId) => {
+    // Verificar si el proyecto está en la caché local
+    if (localProjectData[projectId]) {
+      const projectData = localProjectData[projectId];
+      setSelectedProject({ projectId, name: projectData.name });
+      setProjectInfo(projectData.content || []);
+      setIsProjectInfoUpdated(false);
+  
+      // Cargar la conversación desde la caché local
+      const conversation = projectData.conversation || [];
+  
+      // Formatear los mensajes para el chat
+      const chatMessages = conversation.flatMap((conv) => [
+        { sender: 'user', text: conv.question },
+        { sender: 'gpt', text: conv.answer },
+      ]);
+  
+      setChatMessages(chatMessages);
+    } else {
+      // Si no está en la caché, cargar desde la base de datos
+      try {
+        const projectRef = doc(db, 'Projects', projectId);
+        const projectSnap = await getDoc(projectRef);
+  
+        if (projectSnap.exists()) {
+          const projectData = projectSnap.data();
+          setSelectedProject({ projectId, name: projectData.name });
+          setProjectInfo(projectData.content || []);
+          setIsProjectInfoUpdated(false);
+  
+          // Cargar la conversación
+          const conversation = projectData.conversation || [];
+  
+          // Actualizar la caché local
+          setLocalProjectData((prevData) => ({
+            ...prevData,
+            [projectId]: {
+              ...projectData,
+              conversation,
+            },
+          }));
+  
+          // Formatear los mensajes para el chat
+          const chatMessages = conversation.flatMap((conv) => [
+            { sender: 'user', text: conv.question },
+            { sender: 'gpt', text: conv.answer },
+          ]);
+  
+          setChatMessages(chatMessages);
         } else {
-          setProjectInfo([]);
+          console.error('El proyecto no existe en la base de datos.');
         }
       } catch (error) {
-        console.error("Error al obtener la información del proyecto: ", error);
-        setProjectInfo([]);
+        console.error('Error al cargar el proyecto:', error);
       }
     }
   };
+
+  
 
 
   const openOpinionModal = () => {
@@ -320,16 +333,6 @@ export default function HomePage() {
   };
   
 
-  const handleSelectProject = (projectId) => {
-    if (isProjectInfoUpdated) {
-      // Si hay cambios no guardados, mostrar el modal de confirmación
-      setPendingProjectId(projectId);
-      setShowConfirmationModal(true);
-    } else {
-      // Si no hay cambios, cambiar de proyecto inmediatamente
-      handleProjectSelect(projectId);
-    }
-  };
 
   const handleConfirmChangeProject = (confirm) => {
     setShowConfirmationModal(false);
@@ -441,6 +444,10 @@ export default function HomePage() {
     setIsProjectInfoUpdated(true);
   };
 
+
+
+// En tu componente HomePage.js
+
   const handleSendMessage = async (question) => {
     // Verificar si hay documentos seleccionados
     if (selectedDocuments.length === 0) {
@@ -451,7 +458,7 @@ export default function HomePage() {
         setShowWarningModal(true);
       });
     }
-  
+
     // Verificar si hay cambios no guardados en el proyecto
     if (isProjectInfoUpdated) {
       return new Promise((resolve) => {
@@ -462,7 +469,7 @@ export default function HomePage() {
         setShowWarningModal(true);
       });
     }
-  
+
     // Verificar si la información del proyecto está vacía
     const hasProjectInfo = projectInfo.some(tag => tag.value && tag.value.trim() !== '');
     if (!hasProjectInfo) {
@@ -474,11 +481,60 @@ export default function HomePage() {
         setShowWarningModal(true);
       });
     }
-  
+
     // Si todo está bien, enviar la pregunta
-    const respuesta = await handleUserQuery(question);
-    return { sent: true, responseText: respuesta.responseText };
+    try {
+      const respuesta = await handleUserQuery(question);
+
+      // Guardar la conversación en la base de datos
+      await saveConversation(question, respuesta.responseText);
+
+      // Actualizar los mensajes del chat
+      setChatMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: 'user', text: question },
+        { sender: 'gpt', text: respuesta.responseText },
+      ]);
+
+      return { sent: true, responseText: respuesta.responseText };
+    } catch (error) {
+      console.error('Error al enviar el mensaje:', error);
+      return { sent: true, responseText: 'Error al obtener la respuesta.', error: true };
+    }
   };
+
+
+  const saveConversation = async (question, answer) => {
+    if (!selectedProject || !selectedProject.projectId) {
+      console.error('No hay un proyecto seleccionado.');
+      return;
+    }
+
+    try {
+      const projectRef = doc(db, 'Projects', selectedProject.projectId);
+
+      // Actualizar el campo 'conversation' en el documento del proyecto
+      await updateDoc(projectRef, {
+        conversation: arrayUnion({ question, answer }),
+      });
+
+      // Actualizar la conversación en localProjectData
+      setLocalProjectData((prevData) => {
+        const updatedProject = { ...prevData[selectedProject.projectId] };
+        if (!updatedProject.conversation) {
+          updatedProject.conversation = [];
+        }
+        updatedProject.conversation.push({ question, answer });
+        return {
+          ...prevData,
+          [selectedProject.projectId]: updatedProject,
+        };
+      });
+    } catch (error) {
+      console.error('Error al guardar la conversación:', error);
+    }
+  };
+
   
   
   
@@ -769,6 +825,8 @@ export default function HomePage() {
           projectInfo={projectInfo}
           selectedDocuments={selectedDocuments}
           onUpdateProjectInfo={handleUpdateProjectInfo}
+          messages={chatMessages}
+          setMessages={setChatMessages}
         />
       </div>
   
