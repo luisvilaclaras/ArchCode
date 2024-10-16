@@ -12,6 +12,7 @@ export default function SignUpPopup({ closePopup }) {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [countryCode, setCountryCode] = useState('+34'); // Default country code
   const [error, setError] = useState("");
@@ -23,7 +24,7 @@ export default function SignUpPopup({ closePopup }) {
     setError("");
 
     if (email !== confirmEmail) {
-      setError("Emails do not match");
+      setError("Los correos electrónicos no coinciden.");
       return;
     }
 
@@ -46,9 +47,9 @@ export default function SignUpPopup({ closePopup }) {
       setSuccess(true);
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Try logging in.');
+        setError('Este correo electrónico ya está registrado. Intenta iniciar sesión.');
       } else {
-        setError(error.message);
+        setError('Error al crear la cuenta. Por favor, inténtalo de nuevo más tarde.');
       }
       console.error("Error en la creación de cuenta:", error);
     }
@@ -62,32 +63,32 @@ export default function SignUpPopup({ closePopup }) {
 
   return (
     <>
-      <div className={`fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50 ${success ? 'hidden' : ''}`}>
+      <div className={`fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 ${success ? 'hidden' : ''}`}>
         {/* Animación de aparición/desaparición con framer-motion */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.9, y: -50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 50 }}
           transition={{ duration: 0.3 }}
-          className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-black"
+          className="bg-[#001F54] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
         >
           <button
-            className="text-gray-400 hover:text-gray-600 float-right text-2xl"
+            className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"
             onClick={closePopup}
           >
             &times;
           </button>
-          <h2 className="text-xl font-semibold text-center mb-6">Sign Up</h2>
+          <h2 className="text-2xl font-semibold text-center mb-6">Regístrate</h2>
 
-          {/* Google Sign-In Button */}
-          <button className="bg-white text-gray-700 border border-gray-300 rounded-md flex items-center justify-center py-2 px-4 shadow-md w-full hover:shadow-lg transition">
+          {/* Botón de Inicio de Sesión con Google */}
+          <button className="bg-white text-gray-700 border border-gray-300 rounded-full flex items-center justify-center py-2 px-4 shadow-md w-full hover:shadow-lg transition mb-4 focus:outline-none focus:ring-4 focus:ring-blue-300">
             <img src="/images/google.png" alt="Google icon" className="h-5 mr-2" />
-            <span>Continue with Google</span>
+            <span>Continuar con Google</span>
           </button>
 
-          <div className="text-center text-gray-500 my-4">OR</div>
+          <div className="text-center text-gray-300 my-4">O</div>
 
-          {/* Sign Up Form */}
+          {/* Formulario de registro */}
           <form onSubmit={handleSignUp}>
             <div className="mb-4">
               <input
@@ -95,8 +96,8 @@ export default function SignUpPopup({ closePopup }) {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email*"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 text-black"
+                placeholder="Correo electrónico*"
+                className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm focus:border-lightBlue focus:ring-lightBlue sm:text-sm p-3 text-black placeholder-gray-500"
                 required
               />
             </div>
@@ -107,38 +108,39 @@ export default function SignUpPopup({ closePopup }) {
                 id="confirmEmail"
                 value={confirmEmail}
                 onChange={(e) => setConfirmEmail(e.target.value)}
-                placeholder="Confirm email*"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 text-black"
+                placeholder="Confirma tu correo electrónico*"
+                className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm focus:border-lightBlue focus:ring-lightBlue sm:text-sm p-3 text-black placeholder-gray-500"
                 required
               />
             </div>
 
-            {/* Phone Number Input with Country Code Selector */}
+            {/* Número de teléfono con código de país */}
             <div className="mb-4">
               <div className="flex">
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
-                  className="bg-white text-gray-700 border border-gray-300 p-2 rounded-l-md"
+                  className="bg-white text-black border border-gray-300 p-3 rounded-l-md focus:outline-none focus:border-lightBlue"
                 >
                   <option value="+34">+34</option>
                   <option value="+44">+44</option>
                   <option value="+91">+91</option>
                   <option value="+1">+1</option>
+                  {/* Agrega más códigos de país según sea necesario */}
                 </select>
                 <input
                   type="tel"
                   id="phone"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Phone number*"
-                  className="bg-white text-gray-700 border border-gray-300 p-3 rounded-r-md flex-1"
+                  placeholder="Número de teléfono*"
+                  className="bg-white text-black border border-gray-300 p-3 rounded-r-md flex-1 focus:outline-none focus:border-lightBlue placeholder-gray-500"
                   required
                 />
               </div>
             </div>
 
-            {/* Password Input */}
+            {/* Contraseña */}
             <div className="mb-4">
               <div className="relative">
                 <input
@@ -146,8 +148,8 @@ export default function SignUpPopup({ closePopup }) {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password*"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 text-black"
+                  placeholder="Contraseña*"
+                  className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm focus:border-lightBlue focus:ring-lightBlue sm:text-sm p-3 text-black placeholder-gray-500"
                   required
                 />
                 <span
@@ -155,33 +157,50 @@ export default function SignUpPopup({ closePopup }) {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <img src="/images/eye.png" alt="Show" className="h-5 w-5" />
+                    <img src="/images/eye.png" alt="Mostrar" className="h-5 w-5" />
                   ) : (
-                    <img src="/images/eye-off.png" alt="Hide" className="h-5 w-5" />
+                    <img src="/images/eye-off.png" alt="Ocultar" className="h-5 w-5" />
                   )}
                 </span>
               </div>
             </div>
 
             {/* Mostrar errores si existen */}
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
-            {/* Submit Button */}
+            {/* Botón de submit */}
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md w-full mt-4"
+              className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded-full w-full mt-4 transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
             >
-              Continue
+              Continuar
             </button>
 
-            {/* Agregamos la frase */}
-            <div className="text-center mt-4 text-sm text-gray-500">
-              By proceeding, you agree to the <a href="#" className="text-blue-500 hover:text-blue-600">Terms of Service</a> and <a href="#" className="text-blue-500 hover:text-blue-600">Privacy Policy</a>.
+            {/* Texto adicional */}
+            <div className="text-center mt-4 text-sm text-gray-300">
+              Al continuar, aceptas los{' '}
+              <a href="#" className="text-lightBlue hover:underline">
+                Términos de Servicio
+              </a>{' '}
+              y la{' '}
+              <a href="#" className="text-lightBlue hover:underline">
+                Política de Privacidad
+              </a>
+              .
             </div>
 
             <div className="text-center mt-4">
-              <p className="text-sm text-gray-500">
-                Already have an account? <a href="/login" className="text-blue-500 hover:text-blue-600">Log in</a>
+              <p className="text-sm text-gray-300">
+                ¿Ya tienes una cuenta?{' '}
+                <button
+                  className="text-lightBlue hover:underline focus:outline-none"
+                  onClick={() => {
+                    closePopup();
+                    // Aquí puedes abrir el popup de inicio de sesión si lo deseas
+                  }}
+                >
+                  Inicia Sesión
+                </button>
               </p>
             </div>
           </form>
@@ -190,18 +209,24 @@ export default function SignUpPopup({ closePopup }) {
 
       {/* Mostrar pop-up de éxito si la cuenta se crea */}
       {success && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.9, y: -50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 50 }}
             transition={{ duration: 0.3 }}
-            className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center"
+            className="bg-[#001F54] p-6 rounded-lg shadow-lg w-full max-w-md text-center text-white relative"
           >
-            <h2 className="text-xl font-semibold mb-4 text-black">Account created!</h2>
-            <p className="text-black">Verify your email to start using your new account.</p>
             <button
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md w-full mt-4"
+              className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"
+              onClick={handleSuccessPopupClose}
+            >
+              &times;
+            </button>
+            <h2 className="text-2xl font-semibold mb-4">¡Cuenta creada!</h2>
+            <p>Verifica tu correo electrónico para comenzar a usar tu nueva cuenta.</p>
+            <button
+              className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded-full w-full mt-6 transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
               onClick={handleSuccessPopupClose}
             >
               OK

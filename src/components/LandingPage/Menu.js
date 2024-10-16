@@ -34,17 +34,56 @@ export default function Menu() {
     }
   };
 
+  // Función para desplazarse a la sección correspondiente
+  const handleScrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <nav className="bg-darkBlue p-6 text-white shadow-lg fixed w-full top-0 z-50 ">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-8">
           <img src="images/ArchCode.png" alt="Logo" className="h-10" />
           <ul className="flex space-x-8 text-lg font-semibold">
-            <li className="hover:text-lightBlue cursor-pointer">Home</li>
-            <li className="hover:text-lightBlue cursor-pointer">Features</li>
-            <li className="hover:text-lightBlue cursor-pointer">Pricing</li>
-            <li className="hover:text-lightBlue cursor-pointer">FAQ</li>
-            <li className="hover:text-lightBlue cursor-pointer">Contact</li>
+            <li
+              className="hover:text-lightBlue cursor-pointer"
+              onClick={() => handleScrollToSection('home')}
+            >
+              Home
+            </li>
+            <li
+              className="hover:text-lightBlue cursor-pointer"
+              onClick={() => handleScrollToSection('producto')}
+            >
+              Producto
+            </li>
+            <li
+              className="hover:text-lightBlue cursor-pointer"
+              onClick={() => handleScrollToSection('como-se-usa')}
+            >
+              Cómo se usa
+            </li>
+            <li
+              className="hover:text-lightBlue cursor-pointer"
+              onClick={() => handleScrollToSection('precios')}
+            >
+              Precios
+            </li>
+            <li
+              className="hover:text-lightBlue cursor-pointer"
+              onClick={() => handleScrollToSection('faq')}
+            >
+              FAQ
+            </li>
+            <li
+              className="hover:text-lightBlue cursor-pointer"
+              onClick={() => handleScrollToSection('contacto')}
+            >
+              Contacto
+            </li>
           </ul>
         </div>
 
@@ -89,7 +128,7 @@ export default function Menu() {
               onClick={openSignUpPopup}
               className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-6 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
             >
-              Try For Free
+              Pruébalo Gratis
             </button>
           )}
         </div>

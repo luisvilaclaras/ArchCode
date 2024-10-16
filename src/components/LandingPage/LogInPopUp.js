@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 export default function LogInPopup({ closePopup }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [error, setError] = useState('');
   const { setCurrentUser } = useAuth(); // Utilizamos el contexto para actualizar el usuario actual
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function LogInPopup({ closePopup }) {
       const user = userCredential.user;
 
       if (!user.emailVerified) {
-        setError('Email is not verified. Please verify your email before logging in.');
+        setError('El correo electrónico no está verificado. Por favor, verifica tu email antes de iniciar sesión.');
         return;
       }
 
@@ -38,33 +39,33 @@ export default function LogInPopup({ closePopup }) {
     } catch (error) {
       // Manejar errores comunes de autenticación
       if (error.code === 'auth/user-not-found') {
-        setError('User not found. Please check your email and try again.');
+        setError('Usuario no encontrado. Por favor, verifica tu email y vuelve a intentarlo.');
       } else if (error.code === 'auth/wrong-password') {
-        setError('Incorrect password. Please try again.');
+        setError('Contraseña incorrecta. Por favor, inténtalo de nuevo.');
       } else {
-        setError(error.message);
+        setError('Error al iniciar sesión. Por favor, inténtalo de nuevo más tarde.');
       }
     }
   };
 
   return (
     <>
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
         {/* Animación de aparición/desaparición con framer-motion */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.9, y: -50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 50 }}
           transition={{ duration: 0.3 }}
-          className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm"
+          className="bg-[#001F54] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
         >
           <button
-            className="text-gray-400 hover:text-gray-600 float-right text-2xl"
+            className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"
             onClick={closePopup}
           >
             &times;
           </button>
-          <h2 className="text-xl font-semibold text-center mb-6 text-black">Log In</h2>
+          <h2 className="text-2xl font-semibold text-center mb-6">Iniciar Sesión</h2>
 
           {/* Formulario de login */}
           <form onSubmit={handleLogIn}>
@@ -74,8 +75,8 @@ export default function LogInPopup({ closePopup }) {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email*"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 text-black"
+                placeholder="Correo electrónico*"
+                className="mt-1 block w-full bg-[#003275] border border-gray-600 rounded-md shadow-sm focus:border-lightBlue focus:ring-lightBlue sm:text-sm p-3 text-white placeholder-gray-300"
                 required
               />
             </div>
@@ -87,38 +88,39 @@ export default function LogInPopup({ closePopup }) {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password*"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 text-black"
+                  placeholder="Contraseña*"
+                  className="mt-1 block w-full bg-[#003275] border border-gray-600 rounded-md shadow-sm focus:border-lightBlue focus:ring-lightBlue sm:text-sm p-3 text-white placeholder-gray-300"
                   required
                 />
-                <span className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
-                  <img src="/images/eye-off.png" alt="Hide" className="h-5 w-5" />
-                </span>
+                {/* Puedes agregar funcionalidad para mostrar/ocultar contraseña si lo deseas */}
               </div>
             </div>
 
             {/* Mostrar errores si existen */}
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
             {/* Botón de submit */}
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md w-full mt-4"
+              className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded-full w-full mt-4 transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
             >
-              Log In
+              Iniciar Sesión
             </button>
           </form>
 
           {/* Enlace a registro */}
           <div className="text-center mt-4">
-            <p className="text-sm text-black">
-              Don't have an account?{' '}
-              <a href="#" className="text-blue-500 hover:text-blue-600" onClick={() => {
-                closePopup();
-                // Abrir popup de registro si existe la lógica
-              }}>
-                Sign Up
-              </a>
+            <p className="text-sm">
+              ¿No tienes una cuenta?{' '}
+              <button
+                className="text-lightBlue hover:underline focus:outline-none"
+                onClick={() => {
+                  closePopup();
+                  // Aquí puedes abrir el popup de registro si lo deseas
+                }}
+              >
+                Regístrate
+              </button>
             </p>
           </div>
         </motion.div>
