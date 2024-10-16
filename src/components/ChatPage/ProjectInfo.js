@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import { FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import TagItem from './TagItem';
+import AlertModal from '@/components/Modals/AlertModal';
 
 export const initialMandatoryTags = [
   {
@@ -48,25 +49,31 @@ export const initialMandatoryTags = [
   },
 ];
 
-export default function ProjectInfo({
-  info,
-  onUpdateInfo,
-  onManualEdit,
-  onSave,
-  setIsProjectInfoUpdated,
-  onGenerateAutomaticTags,
-  isGenerating,
-  projectName,
-  onProjectNameChange,
-  resetTags,
-}) {
-  const [isOpen, setIsOpen] = useState(true);
-  const projectInfoRef = useRef(null); // Referencia para el componente
-
+const ProjectInfo = forwardRef(function ProjectInfo(
+  {
+    isOpen,
+    setIsOpen,
+    info,
+    onUpdateInfo,
+    onManualEdit,
+    onSave,
+    setIsProjectInfoUpdated,
+    onGenerateAutomaticTags,
+    isGenerating,
+    projectName,
+    onProjectNameChange,
+    resetTags,
+    isProjectSaved,
+  },
+  ref
+) {
+  const projectInfoRef = ref || useRef(null);
+  const [isEditingName, setIsEditingName] = useState(false);
   const [mandatoryTags, setMandatoryTags] = useState(
     initialMandatoryTags.map(tag => ({ ...tag }))
   );
-  
+  const [showAlertModal, setShowAlertModal] = useState(false);
+
   const [customTags, setCustomTags] = useState([]);
   const [displayedTags, setDisplayedTags] = useState([]);
   const [inputMode, setInputMode] = useState('automatic');
@@ -89,14 +96,12 @@ export default function ProjectInfo({
   }, [resetTags]);
 
   useEffect(() => {
-    // Reiniciar etiquetas personalizadas y mostradas
     setCustomTags([]);
     setDisplayedTags([]);
-  
+
     if (info && info.length > 0) {
       const defaultTagIds = initialMandatoryTags.map(tag => tag.id);
-  
-      // Actualizar etiquetas obligatorias con valores de 'info' sin cambiar los IDs
+
       const updatedMandatoryTags = initialMandatoryTags.map(tag => {
         const foundTag = info.find(t => t.id === tag.id);
         return {
@@ -104,41 +109,24 @@ export default function ProjectInfo({
           value: foundTag ? foundTag.value : '',
         };
       });
-  
-      // Obtener etiquetas personalizadas de 'info' manteniendo los IDs
+
       const newCustomTags = info.filter(
         tag => !defaultTagIds.includes(tag.id)
       );
-  
+
       setMandatoryTags(updatedMandatoryTags);
       setCustomTags(newCustomTags);
     } else {
-      // Si 'info' está vacío, reiniciar las etiquetas obligatorias
       setMandatoryTags(
         initialMandatoryTags.map(tag => ({ ...tag, value: '' }))
       );
       setCustomTags([]);
     }
   }, [info]);
-  
 
   useEffect(() => {
-    // Combinar etiquetas obligatorias y personalizadas
     setDisplayedTags([...mandatoryTags, ...customTags]);
   }, [mandatoryTags, customTags]);
-
-  const handleClickOutside = (event) => {
-    if (projectInfoRef.current && !projectInfoRef.current.contains(event.target)) {
-      setIsOpen(false); // Cerrar el desplegable si se hace clic fuera
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const toggleOpen = () => {
     setIsOpen(!isOpen);
@@ -230,38 +218,90 @@ export default function ProjectInfo({
     onSave(projectData, localProjectName);
   };
 
-  const handleProjectNameEdit = () => {
-    const newName = prompt('Edita el nombre del proyecto:', localProjectName);
-    if (newName) {
-      setLocalProjectName(newName);
-      onProjectNameChange(newName);
+  const handleProjectNameClick = (e) => {
+    e.stopPropagation(); // Evita que el clic en el nombre togglee el despliegue
+    if (!isProjectSaved) {
+      setShowAlertModal(true);
+    } else {
+      setIsEditingName(true);
+    }
+  };
+
+  const handleNameBlur = () => {
+    setIsEditingName(false);
+    if (localProjectName.trim() !== '') {
+      onProjectNameChange(localProjectName.trim());
+    } else {
+      setLocalProjectName(projectName);
+    }
+  };
+
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleNameBlur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setLocalProjectName(projectName);
+      setIsEditingName(false);
     }
   };
 
   return (
     <div
-      ref={projectInfoRef} // Aplica la referencia aquí
+      ref={projectInfoRef}
       className="bg-gray-200 p-4 rounded-lg shadow-lg border border-gray-300 relative overflow-x-hidden"
     >
       {/* Encabezado */}
-      <div className="flex justify-center items-center mb-2">
+      <div
+        className="flex justify-center items-center mb-2 cursor-pointer"
+        onClick={toggleOpen}
+      >
         <h2 className="text-lg font-semibold text-[#001F54] flex items-center gap-2">
           Información del proyecto:
         </h2>
-        <h2 className="text-lg font-semibold text-[#001F54] flex items-center gap-2 ml-4">
-          {localProjectName}
-          <button onClick={handleProjectNameEdit} className="text-gray-600 hover:text-gray-800">
+        <div className="flex items-center gap-2 ml-2">
+          {isEditingName ? (
+            <input
+              type="text"
+              value={localProjectName}
+              onChange={(e) => setLocalProjectName(e.target.value)}
+              onBlur={handleNameBlur}
+              onKeyDown={handleNameKeyDown}
+              className="text-lg font-semibold text-[#001F54] border-b border-gray-400 focus:outline-none"
+              autoFocus
+              onClick={(e) => e.stopPropagation()} // Evita togglear al hacer clic en el input
+            />
+          ) : (
+            <h2
+              className="text-lg font-semibold text-[#001F54] cursor-pointer"
+              onClick={handleProjectNameClick}
+            >
+              {localProjectName}
+            </h2>
+          )}
+          <button
+            onClick={handleProjectNameClick}
+            className="text-gray-600 hover:text-gray-800"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleProjectNameClick(e);
+            }}
+          >
             <FaEdit />
           </button>
-        </h2>
+        </div>
         <button
-          onClick={toggleOpen}
-          className="ml-4 text-gray-600 hover:text-gray-800"
+          onClick={(e) => {
+            e.stopPropagation(); // Evita que el clic en el botón se propague
+            toggleOpen();
+          }}
+          className="ml-2 text-gray-600 hover:text-gray-800"
         >
           {isOpen ? <FaChevronUp /> : <FaChevronDown />}
         </button>
       </div>
-  
+
       {/* Contenido */}
       <AnimatePresence initial={false}>
         {isOpen && (
@@ -297,9 +337,12 @@ export default function ProjectInfo({
                     Manual
                   </button>
                 </div>
-  
+
                 {/* Campos de Entrada */}
-                <div className="flex flex-col items-center gap-2 mt-2" style={{ minHeight: '140px' }}>
+                <div
+                  className="flex flex-col items-center gap-2 mt-2"
+                  style={{ minHeight: '140px' }}
+                >
                   {inputMode === 'manual' && (
                     <>
                       <input
@@ -307,14 +350,18 @@ export default function ProjectInfo({
                         placeholder="Nombre de la etiqueta"
                         className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50"
                         value={newTag.name}
-                        onChange={(e) => handleCustomTagChange('name', e.target.value)}
+                        onChange={(e) =>
+                          handleCustomTagChange('name', e.target.value)
+                        }
                       />
                       <input
                         type="text"
                         placeholder="Valor de la etiqueta"
                         className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50"
                         value={newTag.value}
-                        onChange={(e) => handleCustomTagChange('value', e.target.value)}
+                        onChange={(e) =>
+                          handleCustomTagChange('value', e.target.value)
+                        }
                       />
                       <button
                         onClick={handleAddTag}
@@ -324,7 +371,7 @@ export default function ProjectInfo({
                       </button>
                     </>
                   )}
-  
+
                   {inputMode === 'automatic' && (
                     <>
                       <textarea
@@ -335,7 +382,9 @@ export default function ProjectInfo({
                         onChange={(e) => setAutomaticText(e.target.value)}
                       />
                       <button
-                        onClick={() => onGenerateAutomaticTags(automaticText)}
+                        onClick={() =>
+                          onGenerateAutomaticTags(automaticText)
+                        }
                         className="button-common-style mt-2"
                         disabled={isGenerating}
                       >
@@ -345,7 +394,7 @@ export default function ProjectInfo({
                   )}
                 </div>
               </div>
-  
+
               {/* Columna Derecha - Deslizable */}
               <div className="overflow-y-auto max-h-[160px] grid grid-cols-4 gap-2 w-2/3 custom-scrollbar ml-2 mb-4">
                 <AnimatePresence>
@@ -361,7 +410,7 @@ export default function ProjectInfo({
                 </AnimatePresence>
               </div>
             </div>
-  
+
             {/* Botón Guardar Proyecto */}
             <div className="absolute bottom-0 right-4">
               <button
@@ -374,7 +423,15 @@ export default function ProjectInfo({
           </motion.div>
         )}
       </AnimatePresence>
-  
+
+      {/* Modal de alerta */}
+      {showAlertModal && (
+        <AlertModal
+          message="Guarda primero el proyecto para poder cambiarle el nombre."
+          onClose={() => setShowAlertModal(false)}
+        />
+      )}
+
       {/* Estilos comunes para los botones */}
       <style jsx>{`
         .button-common-style {
@@ -392,7 +449,7 @@ export default function ProjectInfo({
         .button-common-style:hover {
           opacity: 0.9;
         }
-  
+
         .custom-scrollbar {
           overflow-x: hidden;
         }
@@ -413,4 +470,6 @@ export default function ProjectInfo({
       `}</style>
     </div>
   );
-}  
+});
+
+export default ProjectInfo;

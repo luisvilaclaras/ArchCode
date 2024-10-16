@@ -8,7 +8,7 @@ import FAQ from '@/components/LandingPage/FAQ';
 
 export default function Home() {
   return (
-    <div style={{ backgroundColor: '#001F54', transform: 'scale(1.1)', transformOrigin: 'top left', margin: 0, padding: 0, boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div style={{ backgroundColor: '#001F54', overflowX: 'hidden', margin: 0, padding: 0, boxSizing: 'border-box' }}>
     <div>
       {/* Menu Component */}
       <Menu />

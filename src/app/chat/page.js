@@ -35,6 +35,7 @@ export default function HomePage() {
   const handleSendMessageResolveRef = useRef(null);
   const [isPdfRequestModalOpen, setIsPdfRequestModalOpen] = useState(false);
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false); // Estado para el modal de opinión
+  const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(true);
 
   // Estados para el cambio de proyecto
   const [pendingProjectId, setPendingProjectId] = useState(null);
@@ -51,7 +52,13 @@ export default function HomePage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  let warningButtons = [];
+
   const router = useRouter(); 
+
+  const handleChatClick = () => {
+    setIsProjectInfoOpen(false); // Cerrar ProjectInfo
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -97,57 +104,50 @@ export default function HomePage() {
   // Función para manejar la llamada a la función de Firebase y recuperar la respuesta
   const handleUserQuery = async (question) => {
     if (selectedDocuments.length === 0) {
-        console.error("No se han seleccionado documentos.");
-        return;
+      console.error("No se han seleccionado documentos.");
+      return { error: true, responseText: 'No se han seleccionado documentos.' };
     }
-
+  
     if (!selectedProject) {
-        console.error("Proyecto no seleccionado.");
-        return;
+      console.error("Proyecto no seleccionado.");
+      return { error: true, responseText: 'Proyecto no seleccionado.' };
     }
-
-    // Verificación de variables antes de construir el body
-    console.log('selectedDocuments:', selectedDocuments);
-    console.log('projectInfo:', projectInfo);
-    console.log('threadId:', threadId);
-    console.log('selectedProject:', selectedProject);
-
+  
     // Construir el cuerpo de la solicitud con las claves correctas
     const body = {
-        pregunta: question,
-        etiquetas: projectInfo.map(tag => ({ clave: tag.name, contenido: tag.value })),
-        nombreDocumentos: selectedDocuments, // Ahora es un array de documentos
-        threadId: threadId,
-        projectId: selectedProject // Añadir el projectId aquí
+      pregunta: question,
+      etiquetas: projectInfo.map(tag => ({ clave: tag.name, contenido: tag.value })),
+      nombreDocumentos: selectedDocuments,
+      threadId: threadId,
+      projectId: selectedProject.projectId // Asegúrate de que selectedProject tiene la estructura correcta
     };
-
-    console.log('Cuerpo de la solicitud (pre-JSON.stringify):', body);
-
+  
     try {
-        const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/handleUserQuery', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body) // Convertir el cuerpo a JSON
-        });
-
-        if (!response.ok) {
-            throw new Error('Error al obtener la respuesta del servidor.');
-        }
-
-        const data = await response.json();
-        // Actualizar el threadId si es un nuevo hilo creado
-        if (data.threadId && !threadId) {
-            setThreadId(data.threadId);
-        }
-        return data.respuesta;
-
+      const response = await fetch('http://localhost:5001/arquitest-8ecf6/us-central1/handleUserQuery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error al obtener la respuesta del servidor.');
+      }
+  
+      const data = await response.json();
+      // Actualizar el threadId si es un nuevo hilo creado
+      if (data.threadId && !threadId) {
+        setThreadId(data.threadId);
+      }
+      return { error: false, responseText: data.respuesta };
+  
     } catch (error) {
-        console.error('Error al enviar la consulta:', error);
-        return 'Error al obtener la respuesta.';
+      console.error('Error al enviar la consulta:', error);
+      return { error: true, responseText: 'Error al obtener la respuesta.' };
     }
   };
+  
 
   const handleProjectSelect = async (projectId) => {
     setIsProjectInfoUpdated(false);
@@ -262,7 +262,7 @@ export default function HomePage() {
   
       // Obtener el número de proyectos del usuario
       const projectCount = userData.projects ? userData.projects.length : 0;
-      const projectDisplayName = `Proyecto ${projectCount + 2}`;
+      const projectDisplayName = `Proyecto ${projectCount + 1}`;
   
       // Generar un ID único para el proyecto
       const projectId = uuidv4();
@@ -288,7 +288,8 @@ export default function HomePage() {
       // Guardar los datos del proyecto en caché local
       setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
   
-      return projectId;
+      // Retornar tanto el ID como el nombre del proyecto
+      return { projectId, projectDisplayName };
     } catch (error) {
       console.error('Error al crear el proyecto:', error);
       alert('Error al crear el proyecto.');
@@ -296,22 +297,28 @@ export default function HomePage() {
     }
   };
   
+  
 
   const clearProjectInfo = () => {
-    setSelectedProject(null);
+    // Generar nombre temporal para el proyecto
+    const projectCount = userData.projects ? userData.projects.length : 0;
+    const projectDisplayName = `Proyecto ${projectCount + 1}`;
   
-    // Establecer projectInfo como una lista vacía
+    setSelectedProject({ projectId: null, name: projectDisplayName });
+  
+    // Restablecer la información del proyecto
     setProjectInfo([]);
   
-    // Alternar el estado para indicar que se deben reiniciar las etiquetas en ProjectInfo
+    // Alternar el estado para reiniciar las etiquetas en ProjectInfo
     setResetTagsTrigger(prev => !prev);
   
     setIsProjectInfoUpdated(false);
     setIsCreatingNewProject(true);
     setPendingProjectInfo([]);
-    setLocalProjectData({});
+    // No reiniciamos localProjectData para no perder datos de otros proyectos
     setThreadId(null); // Reiniciar threadId al crear nuevo proyecto
   };
+  
 
   const handleSelectProject = (projectId) => {
     if (isProjectInfoUpdated) {
@@ -348,7 +355,7 @@ export default function HomePage() {
         return;
       }
   
-      if (selectedProject) {
+      if (selectedProject && selectedProject.projectId) {
         // Actualizar proyecto existente
         const projectRef = doc(db, "Projects", selectedProject.projectId);
         await updateDoc(projectRef, { content: projectContent });
@@ -359,14 +366,14 @@ export default function HomePage() {
         setShowSuccessModal(true);
       } else {
         // Crear nuevo proyecto
-        const newProjectId = await createNewProject(projectContent);
-        if (newProjectId) {
+        const newProject = await createNewProject(projectContent);
+        if (newProject) {
+          const { projectId, projectDisplayName } = newProject;
           // Mostrar el modal de éxito
           setSuccessMessage('Proyecto creado con éxito.');
           setShowSuccessModal(true);
           // Establecer el proyecto recién creado como seleccionado
-          const projectDisplayName = `Proyecto ${(userData.projects && userData.projects.length) || 0}`;
-          setSelectedProject({ projectId: newProjectId, name: projectDisplayName });
+          setSelectedProject({ projectId, name: projectDisplayName });
         }
       }
   
@@ -374,10 +381,10 @@ export default function HomePage() {
   
     } catch (error) {
       console.error('Error al guardar el proyecto:', error);
-      // Podrías crear un modal de error similar si lo deseas
       alert('Error al guardar el proyecto.');
     }
   };
+  
   
   
 
@@ -444,18 +451,18 @@ export default function HomePage() {
         setShowWarningModal(true);
       });
     }
-
+  
     // Verificar si hay cambios no guardados en el proyecto
     if (isProjectInfoUpdated) {
       return new Promise((resolve) => {
         handleSendMessageResolveRef.current = resolve;
-        setWarningMessage('¿Seguro que quieres hacer la pregunta sin guardar la última información del proyecto?');
+        setWarningMessage('La información del proyecto ha sido actualizada pero no guardada. ¿Deseas actualizar la información y hacer la pregunta?');
         setWarningType('unsavedChanges');
         setPendingQuestion(question);
         setShowWarningModal(true);
       });
     }
-
+  
     // Verificar si la información del proyecto está vacía
     const hasProjectInfo = projectInfo.some(tag => tag.value && tag.value.trim() !== '');
     if (!hasProjectInfo) {
@@ -467,15 +474,14 @@ export default function HomePage() {
         setShowWarningModal(true);
       });
     }
-
+  
     // Si todo está bien, enviar la pregunta
     const respuesta = await handleUserQuery(question);
-    return { sent: true, responseText: respuesta };
+    return { sent: true, responseText: respuesta.responseText };
   };
   
   
   
-
   const handleWarningConfirm = async () => {
     setShowWarningModal(false);
   
@@ -485,24 +491,61 @@ export default function HomePage() {
       return;
     }
   
-    if (warningType === 'unsavedChanges' || warningType === 'noProjectInfo') {
-      // Continuar y enviar la pregunta
-      if (warningType === 'unsavedChanges') {
-        setIsProjectInfoUpdated(false);
+    if (warningType === 'noProjectInfo') {
+      // Proceder sin información del proyecto
+      if (!selectedProject) {
+        const newProjectId = await createNewProject(projectInfo);
+        if (newProjectId) {
+          const projectDisplayName = `Proyecto ${(userData.projects && userData.projects.length + 1) || 1}`;
+          setSelectedProject({ projectId: newProjectId, name: projectDisplayName });
+        } else {
+          handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
+          return;
+        }
       }
-      const respuesta = await handleUserQuery(pendingQuestion);
+  
+      const response = await handleUserQuery(pendingQuestion);
       setPendingQuestion('');
-      // Devolver el resultado al Chat
-      handleSendMessageResolveRef.current({ sent: true, responseText: respuesta });
+      handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
     }
   };
   
+  // Manejador para "Actualizar Información y Hacer la Pregunta"
+  const handleWarningSaveAndProceed = async () => {
+    setShowWarningModal(false);
+  
+    // Si no hay un proyecto seleccionado, creamos uno nuevo
+    if (!selectedProject) {
+      const newProjectId = await createNewProject(projectInfo);
+      if (newProjectId) {
+        const projectDisplayName = `Proyecto ${(userData.projects && userData.projects.length + 1) || 1}`;
+        setSelectedProject({ projectId: newProjectId, name: projectDisplayName });
+      } else {
+        handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
+        return;
+      }
+    }
+  
+    // Guardar la información del proyecto
+    await handleSaveProject(projectInfo);
+  
+    // Asegurarnos de que el threadId esté actualizado
+    // Si no existe, se establecerá al enviar la pregunta
+  
+    // Proceder a enviar la pregunta
+    setIsProjectInfoUpdated(false);
+    const response = await handleUserQuery(pendingQuestion);
+    setPendingQuestion('');
+    handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
+  };
+  
+  // Manejador para cancelar la acción
   const handleWarningCancel = () => {
     setShowWarningModal(false);
     setPendingQuestion('');
-    // Devolver el resultado al Chat indicando que no se envió el mensaje
     handleSendMessageResolveRef.current({ sent: false });
   };
+  
   
   
   
@@ -616,8 +659,41 @@ export default function HomePage() {
     }
   };
   
-  
-
+  if (warningType === 'unsavedChanges') {
+    warningButtons = [
+      {
+        label: 'Actualizar Información y Hacer la Pregunta',
+        onClick: handleWarningSaveAndProceed,
+        className: 'button-common-style',
+      },
+      {
+        label: 'Cancelar',
+        onClick: handleWarningCancel,
+        className: 'button-muted-style',
+      },
+    ];
+  } else if (warningType === 'noProjectInfo') {
+    warningButtons = [
+      {
+        label: 'Sí',
+        onClick: handleWarningConfirm,
+        className: 'button-common-style',
+      },
+      {
+        label: 'Cancelar',
+        onClick: handleWarningCancel,
+        className: 'button-muted-style',
+      },
+    ];
+  } else if (warningType === 'noDocuments') {
+    warningButtons = [
+      {
+        label: 'Vale',
+        onClick: handleWarningConfirm,
+        className: 'button-common-style',
+      },
+    ];
+  }
   if (!userData) {
     return <div>Loading...</div>;
   }
@@ -670,25 +746,29 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-  
         <ProjectInfo 
-          info={projectInfo} 
-          onUpdateInfo={handleUpdateProjectInfo} 
-          onManualEdit={handleManualEdit} 
+          isOpen={isProjectInfoOpen}
+          setIsOpen={setIsProjectInfoOpen}
+          info={projectInfo}
+          onUpdateInfo={handleUpdateProjectInfo}
+          onManualEdit={handleManualEdit}
           onSave={handleSaveProject}
-          setIsProjectInfoUpdated={setIsProjectInfoUpdated} 
+          setIsProjectInfoUpdated={setIsProjectInfoUpdated}
           onGenerateAutomaticTags={handleGenerateAutomaticTags}
           isGenerating={isGeneratingTags}
           projectName={selectedProject ? selectedProject.name : null} 
           onProjectNameChange={handleProjectNameChange} 
           resetTags={resetTagsTrigger}
+          isProjectSaved={selectedProject && selectedProject.projectId !== null} // Nueva prop
         />
-        
-        <Chat 
-          projectInfo={projectInfo} 
-          selectedDocuments={selectedDocuments}
-          onUpdateProjectInfo={handleUpdateProjectInfo} 
+
+        {/* Pasa chatRef al componente Chat */}
+        <Chat
           onSendMessage={handleSendMessage}
+          onChatClick={handleChatClick}
+          projectInfo={projectInfo}
+          selectedDocuments={selectedDocuments}
+          onUpdateProjectInfo={handleUpdateProjectInfo}
         />
       </div>
   
@@ -714,9 +794,7 @@ export default function HomePage() {
       {showWarningModal && (
         <WarningModal
           message={warningMessage}
-          onConfirm={handleWarningConfirm}
-          onCancel={handleWarningCancel}
-          onlyConfirm={warningType === 'noDocuments'}
+          buttons={warningButtons}
         />
       )}
       {isPdfRequestModalOpen && (

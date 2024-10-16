@@ -3,21 +3,30 @@ import { FaPaperPlane } from 'react-icons/fa';
 import { UserMessage } from './UserMessage';
 import { AssistantMessage } from './AssistantMessage';
 
-export default function Chat({ onSendMessage }) {
+export default function Chat({ onSendMessage, onChatClick }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
 
   const handleSendMessage = async () => {
     if (input.trim()) {
       const question = input;
-      setInput('');
 
-      // Añadir el mensaje del usuario a la conversación inmediatamente
+      // Añadir el mensaje del usuario a la conversación
       setMessages((prevMessages) => [
         ...prevMessages,
         { sender: 'user', text: question },
+      ]);
+
+      // Limpiar el input
+      setInput('');
+
+      // Añadir mensaje "Pensando respuesta..."
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: 'gpt', text: loadingMessage },
       ]);
 
       // Establecer indicador de espera
@@ -28,25 +37,33 @@ export default function Chat({ onSendMessage }) {
         const response = await onSendMessage(question);
 
         if (response && response.sent) {
-          // Añadir el mensaje del asistente con texto vacío inicialmente
+          // Reemplazar el mensaje "Pensando respuesta..." con el texto real o error
           setMessages((prevMessages) => {
-            const newMessages = [
-              ...prevMessages,
-              { sender: 'gpt', text: '' },
-            ];
-            const assistantMessageIndex = newMessages.length - 1;
-
-            // Iniciar el efecto de escritura
-            typeMessage(response.responseText, assistantMessageIndex);
+            const newMessages = [...prevMessages];
+            const lastAssistantMessageIndex = newMessages.length - 1;
+            if (response.responseText && !response.error) {
+              newMessages[lastAssistantMessageIndex] = { sender: 'gpt', text: '' };
+              // Iniciar el efecto de escritura
+              typeMessage(response.responseText, lastAssistantMessageIndex);
+            } else {
+              // Mostrar mensaje de error si no hay respuesta válida
+              newMessages[lastAssistantMessageIndex] = { sender: 'gpt', text: response.responseText || 'No se recibió una respuesta válida.' };
+            }
             return newMessages;
           });
+        } else {
+          // Si el mensaje no fue enviado, eliminar el mensaje del usuario y el de 'Pensando respuesta...'
+          setMessages((prevMessages) => prevMessages.slice(0, -2));
         }
       } catch (error) {
         console.error('Error al enviar el mensaje:', error);
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { sender: 'gpt', text: 'Error al obtener la respuesta.' },
-        ]);
+        // Mostrar mensaje de error
+        setMessages((prevMessages) => {
+          const newMessages = [...prevMessages];
+          const lastAssistantMessageIndex = newMessages.length - 1;
+          newMessages[lastAssistantMessageIndex] = { sender: 'gpt', text: 'Error al obtener la respuesta.' };
+          return newMessages;
+        });
       } finally {
         // Restablecer indicador de espera
         setIsWaitingForResponse(false);
@@ -90,19 +107,59 @@ export default function Chat({ onSendMessage }) {
     adjustTextareaHeight(); // Ajustar al iniciar y cuando cambie el valor del input
   }, [input]);
 
+  // Animación de los puntos en "Pensando respuesta..."
+  useEffect(() => {
+    let interval;
+    if (isWaitingForResponse) {
+      let count = 0;
+      interval = setInterval(() => {
+        const dots = '.'.repeat((count % 3) + 1);
+        setLoadingMessage(`Pensando respuesta${dots}`);
+        count++;
+      }, 500);
+    } else {
+      setLoadingMessage('Pensando respuesta');
+    }
+    return () => clearInterval(interval);
+  }, [isWaitingForResponse]);
+
+  // Actualizar el mensaje del asistente con la animación
+  useEffect(() => {
+    if (isWaitingForResponse) {
+      setMessages((prevMessages) => {
+        const newMessages = [...prevMessages];
+        const lastAssistantMessageIndex = newMessages.length - 1;
+        if (newMessages[lastAssistantMessageIndex]?.sender === 'gpt') {
+          newMessages[lastAssistantMessageIndex] = {
+            ...newMessages[lastAssistantMessageIndex],
+            text: loadingMessage,
+          };
+        }
+        return newMessages;
+      });
+    }
+  }, [loadingMessage]);
+
+  // Handler para el clic en el componente Chat
+  const handleChatClick = () => {
+    if (onChatClick) {
+      onChatClick();
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden" onClick={handleChatClick}>
       <div className="flex-1 overflow-y-auto p-4 bg-[#001F54] rounded-lg shadow-md mb-4">
-        {messages.map((msg, index) => (
+        {messages.map((msg, index) =>
           msg.sender === 'user' ? (
             <UserMessage key={index} text={msg.text} />
           ) : (
             <AssistantMessage key={index} text={msg.text} />
           )
-        ))}
+        )}
       </div>
       <div className="p-2 border-t border-gray-200 flex justify-center bg-[#001F54]">
-        <div className="relative w-full max-w-xl"> {/* Cambié de max-w-lg a max-w-xl */}
+        <div className="relative w-full max-w-xl">
           <textarea
             ref={inputRef}
             value={input}

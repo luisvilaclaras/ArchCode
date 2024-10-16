@@ -214,7 +214,7 @@ Con todo esto, responde a la siguiente pregunta dando la conclusión, sin extend
                 newThreadId = await createThread();
                 console.log('Nuevo threadId creado:', newThreadId);
 
-                const projectRef = db.collection('Projects').doc(projectId.projectId);
+                const projectRef = db.collection('Projects').doc(projectId);
                 const projectSnap = await projectRef.get();
 
                 if (projectSnap.exists) {
