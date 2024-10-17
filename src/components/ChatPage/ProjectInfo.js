@@ -72,14 +72,14 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   const [mandatoryTags, setMandatoryTags] = useState(
     initialMandatoryTags.map(tag => ({ ...tag }))
   );
-  const [showAlertModal, setShowAlertModal] = useState(false);
-
   const [customTags, setCustomTags] = useState([]);
   const [displayedTags, setDisplayedTags] = useState([]);
   const [inputMode, setInputMode] = useState('automatic');
   const [newTag, setNewTag] = useState({ name: '', value: '' });
   const [automaticText, setAutomaticText] = useState('');
   const [localProjectName, setLocalProjectName] = useState(projectName);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   useEffect(() => {
     setLocalProjectName(projectName);
@@ -92,28 +92,29 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       );
       setCustomTags([]);
       setDisplayedTags([]);
+      setAutomaticText(''); // Limpiar el input del generador de etiquetas
     }
   }, [resetTags]);
 
   useEffect(() => {
     setCustomTags([]);
     setDisplayedTags([]);
-
+  
     if (info && info.length > 0) {
-      const defaultTagIds = initialMandatoryTags.map(tag => tag.id);
-
+      const defaultTagNames = initialMandatoryTags.map(tag => tag.name);
+  
       const updatedMandatoryTags = initialMandatoryTags.map(tag => {
-        const foundTag = info.find(t => t.id === tag.id);
+        const foundTag = info.find(t => t.name === tag.name);
         return {
           ...tag,
           value: foundTag ? foundTag.value : '',
         };
       });
-
+  
       const newCustomTags = info.filter(
-        tag => !defaultTagIds.includes(tag.id)
+        tag => !defaultTagNames.includes(tag.name)
       );
-
+  
       setMandatoryTags(updatedMandatoryTags);
       setCustomTags(newCustomTags);
     } else {
@@ -123,6 +124,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       setCustomTags([]);
     }
   }, [info]);
+  
 
   useEffect(() => {
     setDisplayedTags([...mandatoryTags, ...customTags]);
@@ -215,12 +217,26 @@ const ProjectInfo = forwardRef(function ProjectInfo(
 
   const handleSave = () => {
     const projectData = [...mandatoryTags, ...customTags];
-    onSave(projectData, localProjectName);
+
+    // Verificar si todas las etiquetas están vacías
+    const isProjectEmpty = projectData.every(
+      tag => !tag.value || tag.value.trim() === ''
+    );
+
+    if (isProjectEmpty) {
+      setAlertMessage(
+        'No se puede guardar un proyecto vacío. Por favor, añade información al proyecto antes de guardarlo.'
+      );
+      setShowAlertModal(true);
+    } else {
+      onSave(projectData, localProjectName);
+    }
   };
 
   const handleProjectNameClick = (e) => {
     e.stopPropagation(); // Evita que el clic en el nombre togglee el despliegue
     if (!isProjectSaved) {
+      setAlertMessage('Guarda primero el proyecto para poder cambiarle el nombre. Para poder guardarlo, el proyecto no puede estar vacío.');
       setShowAlertModal(true);
     } else {
       setIsEditingName(true);
@@ -281,12 +297,11 @@ const ProjectInfo = forwardRef(function ProjectInfo(
             </h2>
           )}
           <button
-            onClick={handleProjectNameClick}
-            className="text-gray-600 hover:text-gray-800"
             onClick={(e) => {
               e.stopPropagation();
               handleProjectNameClick(e);
             }}
+            className="text-gray-600 hover:text-gray-800"
           >
             <FaEdit />
           </button>
@@ -427,7 +442,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       {/* Modal de alerta */}
       {showAlertModal && (
         <AlertModal
-          message="Guarda primero el proyecto para poder cambiarle el nombre."
+          message={alertMessage}
           onClose={() => setShowAlertModal(false)}
         />
       )}

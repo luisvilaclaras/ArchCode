@@ -3,82 +3,95 @@ import { FaPaperPlane } from 'react-icons/fa';
 import { UserMessage } from './UserMessage';
 import { AssistantMessage } from './AssistantMessage';
 
-export default function Chat({ onSendMessage, onChatClick, messages, setMessages }) {
-  // Removed the local state declaration of messages and setMessages
-  // const [messages, setMessages] = useState([]);
+export default function Chat({ onSendMessage, onChatClick, initialMessages, onSaveConversation }) {
+
+  // Manejamos el estado de mensajes internamente
+  const [messages, setMessages] = useState(initialMessages || []);
+
   const [input, setInput] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
 
+  // Actualizar los mensajes cuando initialMessages cambi
+
+  useEffect(() => {
+    setMessages(initialMessages || []);
+  }, [initialMessages]);
+
   const handleSendMessage = async () => {
     if (input.trim()) {
       const question = input;
+      let assistantMessageIndex;
 
-      // Add the user's message to the conversation
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { sender: 'user', text: question },
-      ]);
+      // Agregamos ambos mensajes en una sola llamada a setMessages
+      setMessages((prevMessages) => {
+        const newMessages = [
+          ...prevMessages,
+          { sender: 'user', text: question },
+          { sender: 'gpt', text: loadingMessage, isComplete: false },
+        ];
+        assistantMessageIndex = newMessages.length - 1; // Índice del mensaje del asistente
+        return newMessages;
+      });
 
-      // Clear the input
+      // Limpiar el input
       setInput('');
 
-      // Add "Thinking response..." message
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { sender: 'gpt', text: loadingMessage },
-      ]);
-
-      // Set waiting indicator
+      // Indicar que estamos esperando una respuesta
       setIsWaitingForResponse(true);
 
       try {
-        // Call onSendMessage in HomePage and wait for the result
         const response = await onSendMessage(question);
 
         if (response && response.sent) {
-          // Replace "Thinking response..." with the actual text or error
+          // Reemplazar el mensaje de 'Pensando respuesta...'
           setMessages((prevMessages) => {
             const newMessages = [...prevMessages];
-            const lastAssistantMessageIndex = newMessages.length - 1;
+            const lastAssistantMessageIndex = assistantMessageIndex; // Usamos el índice correcto
             if (response.responseText && !response.error) {
-              newMessages[lastAssistantMessageIndex] = { sender: 'gpt', text: '' };
-              // Start typing effect
-              typeMessage(response.responseText, lastAssistantMessageIndex);
+              newMessages[lastAssistantMessageIndex] = {
+                sender: 'gpt',
+                text: '',
+                isComplete: false,
+              };
+              // Iniciar efecto de tipeo
+              typeMessage(response.responseText, lastAssistantMessageIndex, question);
             } else {
-              // Show error message if no valid response
+              // Mostrar mensaje de error si no hay respuesta válida
               newMessages[lastAssistantMessageIndex] = {
                 sender: 'gpt',
                 text: response.responseText || 'No se recibió una respuesta válida.',
+                isComplete: true, // Marcamos como completa
               };
             }
             return newMessages;
           });
         } else {
-          // If the message was not sent, remove the user's message and the "Thinking response..."
+          // Si no se envió el mensaje, eliminar los mensajes agregados
           setMessages((prevMessages) => prevMessages.slice(0, -2));
         }
       } catch (error) {
         console.error('Error al enviar el mensaje:', error);
-        // Show error message
+        // Mostrar mensaje de error
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
-          const lastAssistantMessageIndex = newMessages.length - 1;
+          const lastAssistantMessageIndex = assistantMessageIndex; // Usamos el índice correcto
           newMessages[lastAssistantMessageIndex] = {
             sender: 'gpt',
             text: 'Error al obtener la respuesta.',
+            isComplete: true, // Marcamos como completa
           };
           return newMessages;
         });
       } finally {
-        // Reset waiting indicator
+        // Restablecer indicador de espera
         setIsWaitingForResponse(false);
       }
     }
   };
 
-  const typeMessage = (fullText, index) => {
+  const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
     const typingSpeed = 30;
@@ -87,11 +100,28 @@ export default function Chat({ onSendMessage, onChatClick, messages, setMessages
       i++;
       setMessages((prevMessages) => {
         const newMessages = [...prevMessages];
-        newMessages[index] = { ...newMessages[index], text: currentText };
+        newMessages[index] = {
+          ...newMessages[index],
+          text: currentText,
+        };
         return newMessages;
       });
       if (i >= fullText.length) {
         clearInterval(interval);
+        // Una vez que el mensaje está completo, marcamos 'isComplete' como true
+        setMessages((prevMessages) => {
+          const newMessages = [...prevMessages];
+          newMessages[index] = {
+            ...newMessages[index],
+            isComplete: true,
+          };
+          return newMessages;
+        });
+
+        // Llamar a onSaveConversation
+        if (onSaveConversation) {
+          onSaveConversation(question, fullText);
+        }
       }
     }, typingSpeed);
   };
@@ -103,20 +133,20 @@ export default function Chat({ onSendMessage, onChatClick, messages, setMessages
     }
   };
 
-  // Adjust the height of the textarea
+  // Ajustar la altura del textarea
   const adjustTextareaHeight = () => {
     const textarea = inputRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`; // Maximum height limit of 200px
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`; // Limitar altura máxima a 200px
     }
   };
 
   useEffect(() => {
-    adjustTextareaHeight(); // Adjust on start and when input value changes
+    adjustTextareaHeight(); // Ajustar al inicio y cuando cambia el valor de input
   }, [input]);
 
-  // Animation of the dots in "Thinking response..."
+  // Animación de los puntos en "Pensando respuesta..."
   useEffect(() => {
     let interval;
     if (isWaitingForResponse) {
@@ -132,7 +162,7 @@ export default function Chat({ onSendMessage, onChatClick, messages, setMessages
     return () => clearInterval(interval);
   }, [isWaitingForResponse]);
 
-  // Update the assistant's message with the animation
+  // Actualizar el mensaje del asistente con la animación
   useEffect(() => {
     if (isWaitingForResponse) {
       setMessages((prevMessages) => {
@@ -149,7 +179,7 @@ export default function Chat({ onSendMessage, onChatClick, messages, setMessages
     }
   }, [loadingMessage]);
 
-  // Handler for click on the Chat component
+  // Manejador para clic en el componente Chat
   const handleChatClick = () => {
     if (onChatClick) {
       onChatClick();
@@ -163,7 +193,7 @@ export default function Chat({ onSendMessage, onChatClick, messages, setMessages
           msg.sender === 'user' ? (
             <UserMessage key={index} text={msg.text} />
           ) : (
-            <AssistantMessage key={index} text={msg.text} />
+            <AssistantMessage key={index} text={msg.text} isComplete={msg.isComplete} />
           )
         )}
       </div>
@@ -178,7 +208,7 @@ export default function Chat({ onSendMessage, onChatClick, messages, setMessages
             className="w-full py-2 pl-4 pr-10 rounded-lg bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
             placeholder="Escribe un mensaje"
             disabled={isWaitingForResponse}
-            style={{ maxHeight: '200px' }} // Limit the maximum height
+            style={{ maxHeight: '200px' }} // Limitar la altura máxima
           />
           <button
             onClick={handleSendMessage}

@@ -7,6 +7,7 @@ import ScrollingImages from '@/components/LandingPage/ScrollingImages';
 import Reviews from '@/components/LandingPage/Reviews';
 import Pricing from '@/components/LandingPage/Pricing';
 import FAQ from '@/components/LandingPage/FAQ';
+import Footer from '@/components/LandingPage/Footer';
 import SignUpPopup from '@/components/LandingPage/SignUpPopUp'; // Importamos el popup de registro
 import LogInPopup from '@/components/LandingPage/LogInPopUp'; // Importamos el popup de login (si es necesario)
 
@@ -275,6 +276,9 @@ export default function Home() {
             Pruébalo Gratis
           </button>
         </section>
+        <Footer>
+          
+          </Footer>
       </div>
     </div>
   );

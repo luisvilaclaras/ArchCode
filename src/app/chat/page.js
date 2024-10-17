@@ -36,7 +36,6 @@ export default function HomePage() {
   const [isPdfRequestModalOpen, setIsPdfRequestModalOpen] = useState(false);
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false); // Estado para el modal de opinión
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(true);
-  const [chatMessages, setChatMessages] = useState([]);
 
 
   // Estados para el cambio de proyecto
@@ -53,6 +52,8 @@ export default function HomePage() {
   // Estados para el modal de éxito
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [initialMessages, setInitialMessages] = useState([]);
+
 
   let warningButtons = [];
 
@@ -70,7 +71,15 @@ export default function HomePage() {
           const docRef = doc(db, "Users", user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setUserData(docSnap.data());
+            const data = docSnap.data();
+            setUserData(data);
+  
+            // Seleccionar el primer proyecto si no hay uno seleccionado
+            if (data.projects && data.projects.length > 0 && !selectedProject) {
+              setSelectedProject(data.projects[0]);
+              // Cargar el proyecto seleccionado
+              handleProjectSelect(data.projects[0].projectId);
+            }
           } else {
             console.error("No such document!");
           }
@@ -78,12 +87,13 @@ export default function HomePage() {
           console.error("Error fetching user data: ", error);
         }
       } else {
-        router.push("/login");
+        router.push("/");
       }
     };
-
+  
     fetchUserData();
   }, [router]);
+  
 
   useEffect(() => {
     const fetchPDFs = async () => {
@@ -179,7 +189,7 @@ export default function HomePage() {
         { sender: 'gpt', text: conv.answer },
       ]);
   
-      setChatMessages(chatMessages);
+      setInitialMessages(chatMessages);
     } else {
       // Si no está en la caché, cargar desde la base de datos
       try {
@@ -210,7 +220,7 @@ export default function HomePage() {
             { sender: 'gpt', text: conv.answer },
           ]);
   
-          setChatMessages(chatMessages);
+          setInitialMessages(chatMessages);
         } else {
           console.error('El proyecto no existe en la base de datos.');
         }
@@ -265,6 +275,7 @@ export default function HomePage() {
     setSelectedDocuments(docs);
   };
 
+  // Dentro de createNewProject
   const createNewProject = async (projectContent) => {
     try {
       const user = auth.currentUser;
@@ -272,35 +283,40 @@ export default function HomePage() {
         console.error("No user logged in!");
         return null;
       }
-  
+
       // Obtener el número de proyectos del usuario
       const projectCount = userData.projects ? userData.projects.length : 0;
       const projectDisplayName = `Proyecto ${projectCount + 1}`;
-  
+
       // Generar un ID único para el proyecto
       const projectId = uuidv4();
-  
+
       // Crear el documento del proyecto
       await setDoc(doc(db, 'Projects', projectId), {
         name: projectDisplayName,
         content: projectContent,
         userId: user.uid,
       });
-  
+
       // Actualizar la lista de proyectos del usuario
-      const updatedProjects = userData.projects ? [...userData.projects, { projectId, name: projectDisplayName }] : [{ projectId, name: projectDisplayName }];
+      const updatedProjects = userData.projects
+        ? [{ projectId, name: projectDisplayName }, ...userData.projects]
+        : [{ projectId, name: projectDisplayName }];
       await updateDoc(doc(db, "Users", user.uid), {
         projects: updatedProjects,
       });
-  
+
       setUserData(prevData => ({
         ...prevData,
         projects: updatedProjects,
       }));
-  
+
       // Guardar los datos del proyecto en caché local
       setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
-  
+
+      // Establecer el nuevo proyecto como seleccionado
+      setSelectedProject({ projectId, name: projectDisplayName });
+
       // Retornar tanto el ID como el nombre del proyecto
       return { projectId, projectDisplayName };
     } catch (error) {
@@ -309,6 +325,7 @@ export default function HomePage() {
       return null;
     }
   };
+
   
   
 
@@ -328,9 +345,12 @@ export default function HomePage() {
     setIsProjectInfoUpdated(false);
     setIsCreatingNewProject(true);
     setPendingProjectInfo([]);
-    // No reiniciamos localProjectData para no perder datos de otros proyectos
     setThreadId(null); // Reiniciar threadId al crear nuevo proyecto
+  
+    // Limpiar los mensajes del chat
+    setInitialMessages([]);
   };
+  
   
 
 
@@ -487,14 +507,7 @@ export default function HomePage() {
       const respuesta = await handleUserQuery(question);
 
       // Guardar la conversación en la base de datos
-      await saveConversation(question, respuesta.responseText);
-
-      // Actualizar los mensajes del chat
-      setChatMessages((prevMessages) => [
-        ...prevMessages,
-        { sender: 'user', text: question },
-        { sender: 'gpt', text: respuesta.responseText },
-      ]);
+      //await saveConversation(question, respuesta.responseText);
 
       return { sent: true, responseText: respuesta.responseText };
     } catch (error) {
@@ -504,20 +517,21 @@ export default function HomePage() {
   };
 
 
-  const saveConversation = async (question, answer) => {
+
+  const handleSaveConversation = async (question, answer) => {
     if (!selectedProject || !selectedProject.projectId) {
       console.error('No hay un proyecto seleccionado.');
       return;
     }
-
+  
     try {
       const projectRef = doc(db, 'Projects', selectedProject.projectId);
-
+  
       // Actualizar el campo 'conversation' en el documento del proyecto
       await updateDoc(projectRef, {
         conversation: arrayUnion({ question, answer }),
       });
-
+  
       // Actualizar la conversación en localProjectData
       setLocalProjectData((prevData) => {
         const updatedProject = { ...prevData[selectedProject.projectId] };
@@ -534,6 +548,7 @@ export default function HomePage() {
       console.error('Error al guardar la conversación:', error);
     }
   };
+  
 
   
   
@@ -825,9 +840,12 @@ export default function HomePage() {
           projectInfo={projectInfo}
           selectedDocuments={selectedDocuments}
           onUpdateProjectInfo={handleUpdateProjectInfo}
-          messages={chatMessages}
-          setMessages={setChatMessages}
+          onSaveConversation={handleSaveConversation}
+          initialMessages={initialMessages}
+
         />
+      
+
       </div>
   
       {/* Modales */}
