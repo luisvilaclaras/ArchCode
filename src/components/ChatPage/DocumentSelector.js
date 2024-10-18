@@ -4,13 +4,15 @@ import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 export default function DocumentSelector({ availablePDFs, selectedRegion, onRegionSelect, onSelect }) {
   const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const regionDropdownRef = useRef(null);
 
-  const handleRegionChange = (e) => {
-    const region = e.target.value;
+  const handleRegionChange = (region) => {
     onRegionSelect(region);
     setSelectedDocuments([]); // Reinicia los documentos seleccionados al cambiar la región
     onSelect([]); // Notifica al padre que la selección ha cambiado
+    setIsRegionDropdownOpen(false); // Cerrar el dropdown de regiones
   };
 
   const handleDocumentToggle = (doc) => {
@@ -28,10 +30,10 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
     });
   };
 
-  const regions = Object.keys(availablePDFs);
+  const regions = ['Normativas nacionales', ...Object.keys(availablePDFs).filter(r => r !== 'Normativas nacionales')];
 
   // Filtrar documentos nacionales para no repetir si ya están en la comunidad seleccionada
-  const nationalDocuments = availablePDFs['Nacionales'] || [];
+  const nationalDocuments = availablePDFs['Normativas nacionales'] || [];
   const regionalDocuments = availablePDFs[selectedRegion] || [];
   const uniqueDocuments = regionalDocuments.concat(
     nationalDocuments.filter((doc) => !regionalDocuments.includes(doc))
@@ -41,11 +43,18 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
     setIsDropdownOpen(!isDropdownOpen);
   };
 
+  const handleRegionDropdownToggle = () => {
+    setIsRegionDropdownOpen(!isRegionDropdownOpen);
+  };
+
   // Cerrar el dropdown si se hace clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (regionDropdownRef.current && !regionDropdownRef.current.contains(event.target)) {
+        setIsRegionDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -61,31 +70,50 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
   return (
     <div className="flex flex-wrap gap-2 items-center">
       {/* Selector de Región */}
-      <div className="relative">
-        <select
-          className={`${commonSelectorClasses} appearance-none pr-10 w-40`}
-          value={selectedRegion}
-          onChange={handleRegionChange}
+      <div className="relative" ref={regionDropdownRef}>
+        <button
+          className={`${commonSelectorClasses} flex justify-between items-center pr-10 w-72`} // Aumentar el ancho del botón de selección
+          onClick={handleRegionDropdownToggle}
         >
-          <option value="" disabled>
-            Selecciona región
-          </option>
-          {regions.map((region, index) => (
-            <option key={index} value={region}>
-              {region}
-            </option>
-          ))}
-        </select>
-        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+          <div className="flex items-center">
+            {/* Mostrar la bandera seleccionada */}
+            {selectedRegion && (
+              <img
+                src={`images/regions/${selectedRegion === 'Normativas nacionales' ? 'Normativas Nacionales.gif' : `${selectedRegion}.gif`}`}
+                alt={`${selectedRegion} flag`}
+                className="inline-block w-4 h-4 mr-2"
+              />
+            )}
+            <span>{selectedRegion || 'Selecciona región'}</span>
+          </div>
           <FaChevronDown className="text-gray-600" />
-        </div>
+        </button>
+
+        {isRegionDropdownOpen && (
+          <div className="absolute mt-1 w-full bg-gray-200 text-gray-700 rounded-md shadow-lg border border-gray-400 z-10 max-h-96 overflow-auto"> {/* Aumentar la altura máxima */}
+            {regions.map((region, index) => (
+              <div
+                key={index}
+                className="flex items-center px-4 py-2 hover:bg-gray-300 cursor-pointer"
+                onClick={() => handleRegionChange(region)}
+              >
+                <img
+                  src={`images/regions/${region === 'Normativas nacionales' ? 'Normativas Nacionales.gif' : `${region}.gif`}`}
+                  alt={`${region} flag`}
+                  className="inline-block w-4 h-4 mr-2"
+                />
+                <span>{region}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Selector de Documentos */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={handleDropdownToggle}
-          className={`${commonSelectorClasses} flex justify-between items-center pr-10 w-60`}
+          className={`${commonSelectorClasses} flex justify-between items-center pr-10 w-72`} // Aumentar el ancho del botón de selección
           disabled={!selectedRegion}
         >
           <span className="truncate">
@@ -103,7 +131,7 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
         </div>
 
         {isDropdownOpen && (
-          <div className="absolute mt-1 w-full bg-gray-200 text-gray-700 rounded-md shadow-lg border border-gray-400 z-10 max-h-60 overflow-auto">
+          <div className="absolute mt-1 w-full bg-gray-200 text-gray-700 rounded-md shadow-lg border border-gray-400 z-10 max-h-96 overflow-auto"> {/* Aumentar la altura máxima */}
             {uniqueDocuments.map((doc, index) => (
               <label key={index} className="flex items-center px-4 py-2 hover:bg-gray-300">
                 <input
@@ -112,8 +140,15 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
                   onChange={() => handleDocumentToggle(doc)}
                   className="form-checkbox h-5 w-5 text-blue-600"
                 />
-                <span className="ml-2">
-                  {nationalDocuments.includes(doc) ? `★ ${doc}` : doc}
+                <span className="ml-2 flex items-center">
+                  {nationalDocuments.includes(doc) && (
+                    <img
+                      src="images/regions/Normativas Nacionales.gif"
+                      alt="Normativas Nacionales"
+                      className="inline-block w-4 h-4 mr-2"
+                    />
+                  )}
+                  {doc}
                 </span>
               </label>
             ))}

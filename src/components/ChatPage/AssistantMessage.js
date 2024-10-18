@@ -30,7 +30,7 @@ export const AssistantMessage = ({ text, isComplete }) => {
           {/* Contenedor para el logo y el texto */}
           <div className="flex items-start w-full">
             {/* Logo a la izquierda con tamaño más pequeño */}
-            <img src="images/ArchCode.png" alt="Logo" className="h-6 mr-2 mt-1" />
+            <img src="images/logo.jpeg" alt="Logo" className="h-6 mr-2 mt-1" />
 
             {/* Texto alineado al lado del logo */}
             <span
