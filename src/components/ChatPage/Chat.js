@@ -3,21 +3,33 @@ import { FaPaperPlane } from 'react-icons/fa';
 import { UserMessage } from './UserMessage';
 import { AssistantMessage } from './AssistantMessage';
 
-export default function Chat({ onSendMessage, onChatClick, initialMessages, onSaveConversation }) {
+export default function Chat({ onSendMessage, onChatClick, initialMessages, onSaveConversation, onFeedback }) {
 
   // Manejamos el estado de mensajes internamente
-  const [messages, setMessages] = useState(initialMessages || []);
+  const [messages, setMessages] = useState(() => initialMessages || []);
 
   const [input, setInput] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
+  const messagesEndRef = useRef(null); // Referencia al final de los mensajes
 
-  // Actualizar los mensajes cuando initialMessages cambi
-
+  // Actualizar los mensajes cuando initialMessages cambie
   useEffect(() => {
-    setMessages(initialMessages || []);
+    if (JSON.stringify(messages) !== JSON.stringify(initialMessages)) {
+      setMessages(initialMessages || []);
+    }
   }, [initialMessages]);
+
+  // Función para desplazarse al final
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Desplazarse al final cuando los mensajes cambien
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (input.trim()) {
@@ -91,10 +103,16 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
     }
   };
 
+  const handleAssistantFeedback = (type, content) => {
+    if (onFeedback) {
+      onFeedback(type, content);
+    }
+  };
+
   const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
-    const typingSpeed = 30;
+    const typingSpeed = 100;
     const interval = setInterval(() => {
       currentText += fullText.charAt(i);
       i++;
@@ -128,7 +146,7 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); // Prevent newline
+      e.preventDefault(); // Evitar salto de línea
       handleSendMessage();
     }
   };
@@ -188,16 +206,22 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" onClick={handleChatClick}>
-      <div className="flex-1 overflow-y-auto p-4 bg-[#001F54] rounded-lg shadow-md mb-4">
+      <div className="flex-1 overflow-y-auto p-4 bg-[#FFFFFF] rounded-lg shadow-md mb-4">
         {messages.map((msg, index) =>
           msg.sender === 'user' ? (
             <UserMessage key={index} text={msg.text} />
           ) : (
-            <AssistantMessage key={index} text={msg.text} isComplete={msg.isComplete} />
+            <AssistantMessage
+              key={index}
+              text={msg.text}
+              isComplete={msg.isComplete}
+              onFeedback={handleAssistantFeedback}
+            />
           )
         )}
+        <div ref={messagesEndRef} /> {/* Elemento para referencia */}
       </div>
-      <div className="p-2 border-t border-gray-200 flex justify-center bg-[#001F54]">
+      <div className="p-2 border-t border-gray-200 flex justify-center bg-[#FFFFFF]">
         <div className="relative w-full max-w-xl">
           <textarea
             ref={inputRef}

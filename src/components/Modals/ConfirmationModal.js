@@ -3,7 +3,7 @@ import React from 'react';
 export default function ConfirmationModal({ message, onConfirm }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-[#001F54] p-6 rounded-lg shadow-lg text-center w-96 border border-white">
+      <div className="bg-[#1e3047] p-6 rounded-lg shadow-lg text-center w-96 border border-white">
         <h2 className="text-lg font-semibold mb-4 text-white">Confirmación</h2>
         <p className="mb-6 text-gray-200">{message}</p>
         <div className="flex justify-center gap-4">
@@ -29,7 +29,7 @@ export default function ConfirmationModal({ message, onConfirm }) {
           height: 32px;
           font-size: 0.75rem;
           padding: 0.25rem;
-          background: linear-gradient(to right, #1e3a8a, #2563eb);
+          background-color: #2563eb;
           color: white;
           border-radius: 9999px;
           text-align: center;

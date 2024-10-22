@@ -7,7 +7,7 @@ import AlertModal from '@/components/Modals/AlertModal';
 
 export const initialMandatoryTags = [
   {
-    id: uuidv4(),
+    id: 'uso-de-edificio',
     name: 'Uso de edificio',
     value: '',
     type: 'select',
@@ -23,26 +23,26 @@ export const initialMandatoryTags = [
     ],
   },
   {
-    id: uuidv4(),
+    id: 'zona-climatica',
     name: 'Zona climática',
     value: '',
     type: 'select',
     options: ['A', 'B', 'C', 'D', 'E'],
   },
   {
-    id: uuidv4(),
+    id: 'altura',
     name: 'Altura',
     value: '',
     type: 'input',
   },
   {
-    id: uuidv4(),
+    id: 'num-plantas',
     name: 'Núm. plantas',
     value: '',
     type: 'input',
   },
   {
-    id: uuidv4(),
+    id: 'superficie-del-edificio',
     name: 'Superficie del edificio',
     value: '',
     type: 'input',
@@ -68,6 +68,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   ref
 ) {
   const projectInfoRef = ref || useRef(null);
+  const tagsContainerRef = useRef(null); // Nueva referencia para el contenedor de etiquetas
   const [isEditingName, setIsEditingName] = useState(false);
   const [mandatoryTags, setMandatoryTags] = useState(
     initialMandatoryTags.map(tag => ({ ...tag }))
@@ -92,29 +93,43 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       );
       setCustomTags([]);
       setDisplayedTags([]);
-      setAutomaticText(''); // Limpiar el input del generador de etiquetas
+      setAutomaticText('');
     }
   }, [resetTags]);
 
   useEffect(() => {
     setCustomTags([]);
     setDisplayedTags([]);
-  
+
     if (info && info.length > 0) {
       const defaultTagNames = initialMandatoryTags.map(tag => tag.name);
-  
+
+      // Para las etiquetas obligatorias
       const updatedMandatoryTags = initialMandatoryTags.map(tag => {
         const foundTag = info.find(t => t.name === tag.name);
-        return {
-          ...tag,
-          value: foundTag ? foundTag.value : '',
-        };
+        if (foundTag) {
+          return {
+            ...tag,
+            value: foundTag.value,
+            id: foundTag.id || tag.id, // Usamos el ID de la base de datos o el ID fijo
+          };
+        } else {
+          return {
+            ...tag,
+            value: '',
+            id: tag.id,
+          };
+        }
       });
-  
-      const newCustomTags = info.filter(
-        tag => !defaultTagNames.includes(tag.name)
-      );
-  
+
+      // Para las etiquetas personalizadas
+      const newCustomTags = info
+        .filter(tag => !defaultTagNames.includes(tag.name))
+        .map(tag => ({
+          ...tag,
+          id: tag.id || uuidv4(), // Usamos el ID de la base de datos o generamos uno nuevo
+        }));
+
       setMandatoryTags(updatedMandatoryTags);
       setCustomTags(newCustomTags);
     } else {
@@ -124,6 +139,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       setCustomTags([]);
     }
   }, [info]);
+  
   
 
   useEffect(() => {
@@ -164,6 +180,16 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       setNewTag({ name: '', value: '' });
       onUpdateInfo([...mandatoryTags, ...updatedTags]);
       setIsProjectInfoUpdated(true);
+
+      // Desplazar el contenedor de etiquetas hacia abajo
+      setTimeout(() => {
+        if (tagsContainerRef.current) {
+          tagsContainerRef.current.scrollTo({
+            top: tagsContainerRef.current.scrollHeight,
+            behavior: 'smooth',
+          });
+        }
+      }, 100); // Añadir un pequeño retraso para asegurarse de que la nueva etiqueta esté presente
     }
   };
 
@@ -266,14 +292,14 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   return (
     <div
       ref={projectInfoRef}
-      className="bg-gray-200 p-4 rounded-lg shadow-lg border border-gray-300 relative overflow-x-hidden"
+      className="bg-[#f3f4f6] p-4 rounded-lg shadow-lg border border-gray-300 relative overflow-x-hidden"
     >
       {/* Encabezado */}
       <div
         className="flex justify-center items-center mb-2 cursor-pointer"
         onClick={toggleOpen}
       >
-        <h2 className="text-lg font-semibold text-[#001F54] flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-[#333333] flex items-center gap-2">
           Información del proyecto:
         </h2>
         <div className="flex items-center gap-2 ml-2">
@@ -284,13 +310,13 @@ const ProjectInfo = forwardRef(function ProjectInfo(
               onChange={(e) => setLocalProjectName(e.target.value)}
               onBlur={handleNameBlur}
               onKeyDown={handleNameKeyDown}
-              className="text-lg font-semibold text-[#001F54] border-b border-gray-400 focus:outline-none"
+              className="text-lg font-semibold text-[#333333] border-b border-gray-400 focus:outline-none"
               autoFocus
               onClick={(e) => e.stopPropagation()} // Evita togglear al hacer clic en el input
             />
           ) : (
             <h2
-              className="text-lg font-semibold text-[#001F54] cursor-pointer"
+              className="text-lg font-semibold text-black cursor-pointer"
               onClick={handleProjectNameClick}
             >
               {localProjectName}
@@ -333,20 +359,20 @@ const ProjectInfo = forwardRef(function ProjectInfo(
                 <div className="flex mb-4 gap-0">
                   <button
                     onClick={() => handleModeSwitch('automatic')}
-                    className={`flex-1 px-4 py-2 rounded-l-full ${
+                    className={`flex-1 px-6 py-3 rounded-l-lg ${
                       inputMode === 'automatic'
-                        ? 'bg-gradient-to-r from-blue-700 to-blue-900 text-white'
-                        : 'bg-blue-300 text-gray-700'
+                        ? 'bg-[#344e6f] text-white'
+                        : 'bg-gray-200 text-gray-700 border border-gray-400'
                     } hover:bg-blue-800 transition-all duration-300 text-sm`}
                   >
                     Automático
                   </button>
                   <button
                     onClick={() => handleModeSwitch('manual')}
-                    className={`flex-1 px-4 py-2 rounded-r-full ${
+                    className={`flex-1 px-6 py-3 rounded-r-lg ${
                       inputMode === 'manual'
-                        ? 'bg-gradient-to-r from-blue-700 to-blue-900 text-white'
-                        : 'bg-blue-300 text-gray-700'
+                        ? 'bg-[#344e6f] text-white'
+                        : 'bg-gray-200 text-gray-700 border border-gray-400'
                     } hover:bg-blue-800 transition-all duration-300 text-sm`}
                   >
                     Manual
@@ -411,7 +437,10 @@ const ProjectInfo = forwardRef(function ProjectInfo(
               </div>
 
               {/* Columna Derecha - Deslizable */}
-              <div className="overflow-y-auto max-h-[160px] grid grid-cols-4 gap-2 w-2/3 custom-scrollbar ml-2 mb-4">
+              <div
+                ref={tagsContainerRef} // Añadir referencia al contenedor de etiquetas
+                className="overflow-y-auto max-h-[160px] grid grid-cols-4 gap-2 w-2/3 custom-scrollbar ml-2 mb-4"
+              >
                 <AnimatePresence>
                   {displayedTags.map((tag) => (
                     <TagItem
@@ -450,17 +479,18 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       {/* Estilos comunes para los botones */}
       <style jsx>{`
         .button-common-style {
-          width: 120px;
-          height: 32px;
-          font-size: 0.75rem;
-          padding: 0.25rem;
-          background: linear-gradient(to right, #1e3a8a, #2563eb);
+          width: 140px; /* Hacemos el botón más largo */
+          height: 40px; /* Aumentamos la altura para un formato más rectangular */
+          font-size: 0.9rem;
+          padding: 0.5rem;
+          background-color: #344e6f; /* Color azul sólido */
           color: white;
-          border-radius: 9999px;
+          border-radius: 12px; /* Menos redondeado para un efecto más rectangular */
           text-align: center;
           display: inline-block;
           transition: opacity 0.3s;
         }
+       
         .button-common-style:hover {
           opacity: 0.9;
         }
@@ -472,11 +502,11 @@ const ProjectInfo = forwardRef(function ProjectInfo(
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-image: linear-gradient(to bottom, #1A3D7C, #164375);
+          background-color: #1A3D7C; /* Color sólido para la barra de desplazamiento */
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background-image: linear-gradient(to bottom, #164375, #123456);
+          background-color: #123456;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background-color: #f0f0f0;

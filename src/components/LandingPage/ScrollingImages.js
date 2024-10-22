@@ -3,7 +3,7 @@
 
 export default function ScrollingImages() {
   return (
-    <section className="relative bg-[#001F54]">
+    <section className="relative bg-[#1e3047]">
       <div className="overflow-hidden">
         {/* Contenedor de imágenes en bucle */}
         <div className="flex items-center justify-start space-x-20 animate-scroll pb-12 ">

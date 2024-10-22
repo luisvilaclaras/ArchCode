@@ -2,7 +2,7 @@ import React from 'react';
 import Footer from '@/components/LandingPage/Footer';
 export default function TermsAndConditions() {
   return (
-    <div className="bg-[#001F54] min-h-screen py-16 text-white">
+    <div className="bg-[#1e3047] min-h-screen py-16 text-white">
       <div className="max-w-7xl mx-auto px-6">
         <h1 className="text-4xl font-bold mb-8 text-center">Términos y Condiciones</h1>
         <div className="text-gray-300 space-y-8">

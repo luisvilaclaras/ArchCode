@@ -26,6 +26,20 @@ body {
   }
 }
 
+@font-face {
+  font-family: 'MiFuentePersonalizada';
+  src: url('/fonts/Inter_18pt-Regular.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'MiFuentePersonalizada';
+  src: url('/fonts/Inter_18pt-Bold.ttf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
 /* styles/globals.css o tu archivo CSS global */
 
 @keyframes scroll {

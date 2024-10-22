@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion'; // Importamos framer-motion
 import { auth, db } from "../../../firebase-credentials";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Importamos serverTimestamp
 import { useRouter } from 'next/navigation';
 
 export default function SignUpPopup({ closePopup }) {
@@ -36,11 +36,12 @@ export default function SignUpPopup({ closePopup }) {
       // Enviar verificación de correo electrónico
       await sendEmailVerification(user);
 
-      // Guardar datos del usuario en Firestore
+      // Guardar datos del usuario en Firestore, incluyendo la fecha actual
       await setDoc(doc(db, "Users", user.uid), {
         gmail: email,
         phone: `${countryCode}${phoneNumber}`,
         plan: "basic",
+        lastOpinionModalShown: serverTimestamp(), // Agregamos este campo
       });
 
       // Mostrar mensaje de éxito
@@ -70,7 +71,7 @@ export default function SignUpPopup({ closePopup }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 50 }}
           transition={{ duration: 0.3 }}
-          className="bg-[#001F54] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
+          className="bg-[#1e3047] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
         >
           <button
             className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"
@@ -215,7 +216,7 @@ export default function SignUpPopup({ closePopup }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 50 }}
             transition={{ duration: 0.3 }}
-            className="bg-[#001F54] p-6 rounded-lg shadow-lg w-full max-w-md text-center text-white relative"
+            className="bg-[#1e3047] p-6 rounded-lg shadow-lg w-full max-w-md text-center text-white relative"
           >
             <button
               className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"

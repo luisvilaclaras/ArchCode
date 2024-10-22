@@ -13,6 +13,9 @@ module.exports = {
         darkBlue: '#1e3a8a',
         lightBlue: '#60a5fa',
       },
+      fontFamily: {
+        personalizada: ['MiFuentePersonalizada', 'sans-serif'],
+      },
     },
   },
   plugins: [],

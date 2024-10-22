@@ -5,7 +5,7 @@ import React from 'react';
 export default function WarningModal({ message, buttons }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-[#001F54] p-6 rounded-lg shadow-lg text-center w-96 border border-white">
+      <div className="bg-[#1e3047] p-6 rounded-lg shadow-lg text-center w-96 border border-white">
         <h2 className="text-lg font-semibold mb-4 text-white">Advertencia</h2>
         <p className="mb-6 text-gray-200">{message}</p>
         <div className="flex flex-col space-y-2">
@@ -28,7 +28,7 @@ export default function WarningModal({ message, buttons }) {
           height: 40px;
           font-size: 0.875rem;
           padding: 0.5rem;
-          background: linear-gradient(to right, #1e3a8a, #2563eb);
+          background-color: #2563eb;
           color: white;
           border-radius: 0.375rem;
           text-align: center;

@@ -4,22 +4,28 @@ import { useState, useEffect } from 'react';
 
 const reviews = [
   { 
-    text: 'This tool really helped me with my assignments!', 
-    user: 'Student A', 
-    institution: 'Harvard University',
-    profilePic: 'https://randomuser.me/api/portraits/men/32.jpg'
+    text: 'Me he ahorrado bastante tiempo que siempre tengo que emplear en buscar entre los documentos', 
+    user: 'Víctor Bernad', 
+    institution: 'UPC',
+    profilePic: 'images/users/carlos_g.png'
   },
   { 
-    text: 'Great for real-time feedback on my homework.', 
-    user: 'Student B', 
-    institution: 'MIT',
-    profilePic: 'https://randomuser.me/api/portraits/women/44.jpg'
+    text: 'Lo mejor es que las respuestas se adapten a tu proyecto', 
+    user: 'Carlos Gonzalo', 
+    institution: 'IQS',
+    profilePic: 'images/users/carlos_g.png'
   },
   { 
-    text: 'Highly recommend for anyone struggling with studies.', 
+    text: 'Va muy bien para los trabajos de la uni', 
     user: 'Student C', 
     institution: 'Stanford University',
-    profilePic: 'https://randomuser.me/api/portraits/men/85.jpg'
+    profilePic: 'images/users/carlos_g.png'
+  },
+  { 
+    text: 'Estaba harta de tener que estar todo el día buscando entre las diferentes normativas. Realmente me es útil', 
+    user: 'Student D', 
+    institution: 'MIT',
+    profilePic: 'images/users/carlos_g.png'
   },
 ];
 
@@ -49,8 +55,8 @@ export default function Reviews() {
   };
 
   return (
-    <section className="bg-[#001F54] text-white py-16 text-center">
-      <h2 className="text-4xl font-bold mb-8">What students say</h2>
+    <section className="bg-[#1e3047] text-white py-16 text-center">
+      <h2 className="text-4xl font-bold mb-8">Lo que los usuarios dicen</h2>
       <div className="relative max-w-3xl mx-auto flex justify-center items-center space-x-6">
         {/* Review anterior */}
         <div className={`absolute left-0 transform -translate-x-1/3 transition-opacity duration-500 ${getReviewClass((currentReview - 1 + reviews.length) % reviews.length)}`}>
@@ -100,15 +106,15 @@ export default function Reviews() {
       <div className="flex justify-center mt-6 space-x-4">
         <button 
           onClick={prevReview} 
-          className="bg-lightBlue text-white py-2 px-4 rounded-lg shadow hover:bg-blue-500 transition"
+          className="bg-[#344e6f] text-white py-2 px-4 rounded-lg shadow hover:bg-blue-500 transition"
         >
-          Previous
+          Anterior
         </button>
         <button 
           onClick={nextReview} 
-          className="bg-lightBlue text-white py-2 px-4 rounded-lg shadow hover:bg-blue-500 transition"
+          className="bg-[#344e6f] text-white py-2 px-4 rounded-lg shadow hover:bg-blue-500 transition"
         >
-          Next
+          Siguiente
         </button>
       </div>
     </section>

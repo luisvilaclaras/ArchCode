@@ -43,13 +43,18 @@ export default function Menu() {
   };
 
   return (
-    <nav className="bg-darkBlue p-6 text-white shadow-lg fixed w-full top-0 z-50 ">
+    <nav className="bg-[#344e6f] p-6 text-white shadow-lg fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-8">
-          <img src="images/ArchCode.png" alt="Logo" className="h-10" />
-          <ul className="flex space-x-8 text-lg font-semibold">
+          <img 
+            src="images/ArchCode.png" 
+            alt="Logo" 
+            className="h-10 cursor-pointer" 
+            onClick={() => handleScrollToSection('home')} 
+          />
+          <ul className="flex space-x-8 text-base font-semibold"> {/* Cambiamos text-lg a text-base */}
             <li
-              className="hover:text-lightBlue cursor-pointer"
+              className="hover:text-lightBlue cursor-pointer font-personalizada"
               onClick={() => handleScrollToSection('home')}
             >
               Home
@@ -70,7 +75,7 @@ export default function Menu() {
               className="hover:text-lightBlue cursor-pointer"
               onClick={() => handleScrollToSection('precios')}
             >
-              Precios
+              Beta
             </li>
             <li
               className="hover:text-lightBlue cursor-pointer"
@@ -91,10 +96,11 @@ export default function Menu() {
           {/* Botón de Dashboard */}
           <button
             onClick={handleDashboardClick}
-            className="bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 px-6 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
+            className="bg-[#344e6f] text-white py-2 px-6 rounded-full border border-blue-500 shadow-sm hover:shadow-md transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500"
           >
             Accede a la herramienta
           </button>
+
 
           {currentUser ? (
             <div className="relative">
@@ -126,7 +132,7 @@ export default function Menu() {
           ) : (
             <button
               onClick={openSignUpPopup}
-              className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-6 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
+              className="bg-[#2563eb] text-white py-2 px-6 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
             >
               Pruébalo Gratis
             </button>

@@ -202,9 +202,18 @@ exports.handleUserQuery = onRequest(async (req, res) => {
         const etiquetasString = etiquetas.map(etiqueta => `${etiqueta.clave}: ${etiqueta.contenido}`).join(', ');
 
         const query = `
-Responde a la siguiente consulta relacionada con los documentos cuyos nombres son: "${documentosString}". Para tu respuesta, solo debes tener en cuenta estos documentos. 
-Aquí tienes la información relevante del proyecto: ${etiquetasString}. 
-Con todo esto, responde a la siguiente pregunta dando la conclusión, sin extenderte; pero siempre haciendo referencia a los datos proporcionados por el usuario si es posible para dar una respuesta más personalizada. Además, después de la conclusión debes citar entre comillas una pequeña parte del archivo donde se ha encontrado la respuesta o desde donde se ha podido intuir la respuesta. La pregunta: ${pregunta}
+            Como experto en códigos técnicos de construcción:
+            Analiza la pregunta y encuentra la información relevante en los documentos. Solo puedes usar estos documentos ${documentosString}, junto con la información del proyecto: ${etiquetasString}. 
+            Bajo ningun concepto debes referenciar o usar un documento que no sea uno de los seleccionados.
+            Realiza cálculos si es necesario, usando datos y normas de los documentos.
+            Escribe una respuesta clara y precisa, terminando con una referencia al documento en cuestión y la parte importante. No hace falta hacer un resmuen al final.
+            Ejemplo:
+            Pregunta: ¿Cuál es el requerimiento de aislamiento térmico para paredes exteriores en un clima frío?
+            Respuesta: El requerimiento es [detalles específicos]. 
+            Referencia:
+            "[nombre_pdf] - Sección 4.2, Aislamiento Térmico, Climas Fríos"
+            "[cita textualmente la parte de donde hayas sacado la información, en cursiva. No te inventes la frase]"
+            La pregunta en cuestión: ${pregunta}
 `;
 
         let newThreadId = threadId;
@@ -287,7 +296,7 @@ Y el siguiente texto explicativo sobre el proyecto:
 "${textoProyecto}"
 
 Genera una lista de etiquetas adicionales relacionadas con la arquitectura que sean relevantes para responder preguntas sobre este proyecto. Si alguna de las etiquetas actuales no tiene valor, también la debes llenar siempre que sea posible. Devuelve las etiquetas en formato JSON como un array de objetos con las propiedades "name" y "value", sin ningún texto adicional ni bloques de código.
-
+IMPORTANTE: No te inventes ninguna información.
 Ejemplo de salida:
 [
     { "name": "Etiqueta1", "value": "Valor1" },
@@ -301,11 +310,11 @@ Ejemplo de salida:
                 {
                     model: 'gpt-4o-mini',
                     messages: [
-                        { role: 'system', content: 'Eres un asistente útil y experto en arquitectura.' },
+                        { role: 'system', content: 'Eres un asistente útil y experto en arquitectura. No te puedes inventar ninguna información, solo crear etiquetas 100% basadas en la información proporcionada.' },
                         { role: 'user', content: prompt }
                     ],
                     max_tokens: 500,
-                    temperature: 0.7,
+                    temperature: 0,
                     n: 1,
                     stop: null
                 },

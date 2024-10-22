@@ -19,7 +19,7 @@ export default function SuccessNotification({ message, onClose }) {
             height: 40px;
             font-size: 0.9rem;
             padding: 0.5rem;
-            background: linear-gradient(to right, #1e3a8a, #2563eb);
+            background-color: #2563eb;
             color: white;
             border-radius: 9999px;
             text-align: center;

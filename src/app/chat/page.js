@@ -38,6 +38,7 @@ export default function HomePage() {
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(true);
 
 
+
   // Estados para el cambio de proyecto
   const [pendingProjectId, setPendingProjectId] = useState(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -73,6 +74,9 @@ export default function HomePage() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserData(data);
+  
+            // Verificar si es momento de mostrar el modal
+            checkAndShowOpinionModal(data);
   
             // Seleccionar el primer proyecto si no hay uno seleccionado
             if (data.projects && data.projects.length > 0 && !selectedProject) {
@@ -112,6 +116,43 @@ export default function HomePage() {
 
     fetchPDFs();
   }, []);
+  const checkAndShowOpinionModal = (data) => {
+    const lastShown = data.lastOpinionModalShown;
+    const currentDate = new Date();
+    const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+  
+    if (!lastShown) {
+      // Si nunca se ha mostrado, lo mostramos ahora
+      setIsOpinionModalOpen(true);
+    } else {
+      const lastShownDate = new Date(lastShown.toDate()); // Convertir Timestamp a Date
+      if (currentDate - lastShownDate >= threeDaysInMs) {
+        // Han pasado 3 días o más, mostramos el modal
+        setIsOpinionModalOpen(true);
+      }
+    }
+  };
+
+  const closeOpinionModal = async () => {
+    setIsOpinionModalOpen(false);
+    // Actualizar la fecha en Firestore
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, "Users", user.uid);
+        await updateDoc(userRef, {
+          lastOpinionModalShown: serverTimestamp(),
+        });
+        // Actualizar el estado local
+        setUserData((prevData) => ({
+          ...prevData,
+          lastOpinionModalShown: new Date(),
+        }));
+      }
+    } catch (error) {
+      console.error("Error al actualizar lastOpinionModalShown:", error);
+    }
+  };
 
   // Función para manejar la llamada a la función de Firebase y recuperar la respuesta
   const handleUserQuery = async (question, projectIdParam) => {
@@ -240,9 +281,6 @@ export default function HomePage() {
     setIsOpinionModalOpen(true);
   };
 
-  const closeOpinionModal = () => {
-    setIsOpinionModalOpen(false);
-  };
 
   const openPdfRequestModal = () => {
     setIsPdfRequestModalOpen(true);
@@ -286,21 +324,21 @@ export default function HomePage() {
         console.error("No user logged in!");
         return null;
       }
-
+  
       // Obtener el número de proyectos del usuario
       const projectCount = userData.projects ? userData.projects.length : 0;
       const projectDisplayName = `Proyecto ${projectCount + 1}`;
-
+  
       // Generar un ID único para el proyecto
       const projectId = uuidv4();
-
+  
       // Crear el documento del proyecto
       await setDoc(doc(db, 'Projects', projectId), {
         name: projectDisplayName,
         content: projectContent,
         userId: user.uid,
       });
-
+  
       // Actualizar la lista de proyectos del usuario
       const updatedProjects = userData.projects
         ? [{ projectId, name: projectDisplayName }, ...userData.projects]
@@ -308,18 +346,25 @@ export default function HomePage() {
       await updateDoc(doc(db, "Users", user.uid), {
         projects: updatedProjects,
       });
-
+  
       setUserData(prevData => ({
         ...prevData,
         projects: updatedProjects,
       }));
-
+  
       // Guardar los datos del proyecto en caché local
-      setLocalProjectData(prevData => ({ ...prevData, [projectId]: projectContent }));
-
+      setLocalProjectData(prevData => ({
+        ...prevData,
+        [projectId]: {
+          name: projectDisplayName,
+          content: projectContent,
+          conversation: [],
+        },
+      }));
+  
       // Establecer el nuevo proyecto como seleccionado
       setSelectedProject({ projectId, name: projectDisplayName });
-
+  
       // Retornar tanto el ID como el nombre del proyecto
       return { projectId, projectDisplayName };
     } catch (error) {
@@ -328,6 +373,7 @@ export default function HomePage() {
       return null;
     }
   };
+  
 
   
   
@@ -386,7 +432,16 @@ export default function HomePage() {
         const projectRef = doc(db, "Projects", selectedProject.projectId);
         await updateDoc(projectRef, { content: projectContent });
   
-        setLocalProjectData(prevData => ({ ...prevData, [selectedProject.projectId]: projectContent }));
+        // Actualizar localProjectData con todos los detalles
+        setLocalProjectData(prevData => ({
+          ...prevData,
+          [selectedProject.projectId]: {
+            name: selectedProject.name,
+            content: projectContent,
+            conversation: prevData[selectedProject.projectId]?.conversation || [],
+          },
+        }));
+  
         // Mostrar el modal de éxito
         setSuccessMessage('Proyecto actualizado con éxito.');
         setShowSuccessModal(true);
@@ -400,6 +455,16 @@ export default function HomePage() {
           setShowSuccessModal(true);
           // Establecer el proyecto recién creado como seleccionado
           setSelectedProject({ projectId, name: projectDisplayName });
+  
+          // Actualizar localProjectData para el nuevo proyecto
+          setLocalProjectData(prevData => ({
+            ...prevData,
+            [projectId]: {
+              name: projectDisplayName,
+              content: projectContent,
+              conversation: [],
+            },
+          }));
         }
       }
   
@@ -410,6 +475,7 @@ export default function HomePage() {
       alert('Error al guardar el proyecto.');
     }
   };
+  
   
   
   
@@ -528,7 +594,34 @@ const handleSendMessage = async (question) => {
 
 
 
+    // Función para manejar el feedback
+  const handleFeedback = async (type, content) => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("No user logged in!");
+      return;
+    }
+    const userId = user.uid;
 
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.getDate()}-${currentDate.getMonth() + 1}-${currentDate.getFullYear()}`;
+
+    // Mapear el tipo de feedback a 'thums_up' o 'thums_down'
+    const feedbackType = type === 'positive' ? 'thumbs_up' : 'thumbs_down';
+
+    const reviewData = {
+      type: `${feedbackType}-${formattedDate}`,
+      userId: userId,
+      content: content,
+    };
+
+    try {
+      const reviewRef = await addDoc(collection(db, 'Reviews'), reviewData);
+      console.log("Review saved with ID: ", reviewRef.id);
+    } catch (error) {
+      console.error('Error saving review:', error);
+    }
+  };
 
 
 
@@ -846,7 +939,7 @@ const handleSendMessage = async (question) => {
         />
       </div>
   
-      <div className="flex flex-1 flex-col p-6 bg-[#001F54] overflow-y-auto">
+      <div className="flex flex-1 flex-col p-6 bg-[#FFFFFF] overflow-y-auto">
         {/* Contenedor para los botones y el UserMenu */}
         <div className="flex items-center justify-between mb-4">
           {/* Selector de Documentos */}
@@ -864,7 +957,7 @@ const handleSendMessage = async (question) => {
             {/* Botón para abrir el modal de solicitud de PDF */}
             <button
               onClick={openPdfRequestModal}
-              className="py-2 px-4 bg-gray-800 text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
+              className="py-2 px-4 bg-[#344e6f] text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
             >
               ¿No encuentras el pdf que necesitas?
             </button>
@@ -872,7 +965,7 @@ const handleSendMessage = async (question) => {
             {/* Botón para abrir el modal de opinión */}
             <button
               onClick={openOpinionModal}
-              className="py-2 px-4 bg-gray-800 text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
+              className="py-2 px-4 bg-[#344e6f] text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
             >
               Dejar una opinión
             </button>
@@ -908,7 +1001,7 @@ const handleSendMessage = async (question) => {
           onUpdateProjectInfo={handleUpdateProjectInfo}
           onSaveConversation={handleSaveConversation}
           initialMessages={initialMessages}
-
+          onFeedback={handleFeedback} // Pasamos la función al componente Chat
         />
       
 
