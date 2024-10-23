@@ -12,6 +12,9 @@ const processText = (text) => {
   // Reemplazar "texto" por <strong>texto</strong>, quitando las comillas
   processedText = processedText.replace(/"([^"]+)"/g, '<strong>$1</strong>');
   
+  // Ocultar cualquier texto entre "【" y "】"
+  processedText = processedText.replace(/【.*?】/gs, '');
+  
   // Reemplazar los marcadores __QUOTE__ por comillas reales
   processedText = processedText.replace(/__QUOTE__/g, '"');
 
@@ -23,6 +26,7 @@ const processText = (text) => {
   const sanitizedText = DOMPurify.sanitize(processedText);
   return sanitizedText;
 };
+
 
 
 
@@ -64,12 +68,12 @@ export const AssistantMessage = ({ text, isComplete, onFeedback }) => {
             <div className="mt-4 border-t border-gray-600 pt-2 w-full flex flex-col items-center">
               {feedbackGiven ? (
                 // Mostrar mensaje de agradecimiento con animación
-                <p className="text-sm text-gray-300 mb-2 text-center animate-fade-in">
+                <p className="text-sm text-gray-500 mb-2 text-center animate-fade-in">
                   Muchas gracias. Tu opinión nos ayuda a mejorar.
                 </p>
               ) : (
                 <>
-                  <p className="text-sm text-gray-300 mb-2 text-center">
+                  <p className="text-sm text-gray-500 mb-2 text-center">
                     ¿Qué te ha parecido la respuesta?
                   </p>
                   <div className="flex space-x-8 animate-fade-in">

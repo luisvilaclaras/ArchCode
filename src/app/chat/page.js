@@ -834,30 +834,33 @@ const handleSendMessage = async (question) => {
   const handleWarningSaveAndProceed = async () => {
     setShowWarningModal(false);
   
+    let projectIdToUse;
+  
     // Si no hay un proyecto seleccionado, creamos uno nuevo
     if (!selectedProject || !selectedProject.projectId) {
       const newProject = await createNewProject(projectInfo);
       if (newProject) {
         const { projectId, projectDisplayName } = newProject;
         setSelectedProject({ projectId, name: projectDisplayName });
+        projectIdToUse = projectId; // Almacenamos el projectId
       } else {
         handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
         return;
       }
+    } else {
+      projectIdToUse = selectedProject.projectId;
     }
   
     // Guardar la información del proyecto
     await handleSaveProject(projectInfo);
   
-    // Asegurarnos de que el threadId esté actualizado
-    // Si no existe, se establecerá al enviar la pregunta
-  
     // Proceder a enviar la pregunta
     setIsProjectInfoUpdated(false);
-    const response = await handleUserQuery(pendingQuestion);
+    const response = await handleUserQuery(pendingQuestion, projectIdToUse); // Pasamos el projectId explícitamente
     setPendingQuestion('');
     handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
   };
+  
   
   
   // Manejador para cancelar la acción
