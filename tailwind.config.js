@@ -16,6 +16,9 @@ module.exports = {
       fontFamily: {
         personalizada: ['MiFuentePersonalizada', 'sans-serif'],
       },
+      screens: {
+        'custom': '1480px',
+      }
     },
   },
   plugins: [],

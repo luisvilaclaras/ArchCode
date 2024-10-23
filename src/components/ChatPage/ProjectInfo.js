@@ -10,24 +10,13 @@ export const initialMandatoryTags = [
     id: 'uso-de-edificio',
     name: 'Uso de edificio',
     value: '',
-    type: 'select',
-    options: [
-      'Vivienda unifamiliar',
-      'Edificio de viviendas',
-      'Edificio de oficinas',
-      'Centro comercial',
-      'Industrial',
-      'Patrimonio histórico',
-      'Equipamiento público',
-      'Otro',
-    ],
+    type: 'input',
   },
   {
     id: 'zona-climatica',
     name: 'Zona climática',
     value: '',
-    type: 'select',
-    options: ['A', 'B', 'C', 'D', 'E'],
+    type: 'input',
   },
   {
     id: 'altura',
@@ -251,7 +240,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
 
     if (isProjectEmpty) {
       setAlertMessage(
-        'No se puede guardar un proyecto vacío. Por favor, añade información al proyecto antes de guardarlo.'
+        'No se puede guardar un proyecto vacío. Por favor, añade información al proyecto o realiza alguna pregunta, antes de guardarlo.'
       );
       setShowAlertModal(true);
     } else {
@@ -271,12 +260,15 @@ const ProjectInfo = forwardRef(function ProjectInfo(
 
   const handleNameBlur = () => {
     setIsEditingName(false);
-    if (localProjectName.trim() !== '') {
-      onProjectNameChange(localProjectName.trim());
+    const trimmedName = localProjectName.trim();
+  
+    if (trimmedName !== '') {
+      onProjectNameChange(trimmedName);
     } else {
       setLocalProjectName(projectName);
     }
   };
+  
 
   const handleNameKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -307,7 +299,13 @@ const ProjectInfo = forwardRef(function ProjectInfo(
             <input
               type="text"
               value={localProjectName}
-              onChange={(e) => setLocalProjectName(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (newValue.length <= 14) {
+                  setLocalProjectName(newValue);
+                }
+                // Si la longitud es mayor a 19, no actualizamos el estado y el input no cambiará
+              }}
               onBlur={handleNameBlur}
               onKeyDown={handleNameKeyDown}
               className="text-lg font-semibold text-[#333333] border-b border-gray-400 focus:outline-none"

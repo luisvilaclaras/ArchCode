@@ -1,19 +1,30 @@
 import React, { useState } from 'react';
 import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
+import DOMPurify from 'dompurify';
 
-// Función para procesar el texto y aplicar los cambios
 const processText = (text) => {
   // Reemplazar **texto** por <strong>texto</strong>
-  let boldText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  let processedText = text.replace(/\*\*(.*?)\*\*/gs, '<strong>$1</strong>');
   
-  // Insertar saltos de línea antes y después de los ":"
-  boldText = boldText.replace(/:\s*/g, ':\n');
+  // Reemplazar *texto* por <em>\n"texto"</em>, añadiendo un salto de línea, comillas y cursiva con marcadores temporales
+  processedText = processedText.replace(/(?<!\*)\*(?!\*)(.*?)\*(?!\*)/gs, '<em>\n__QUOTE__$1__QUOTE__</em>');
   
-  // Insertar saltos de línea antes de las partes en negrita
-  boldText = boldText.replace(/(<strong>.*?<\/strong>)/g, '\n$1\n');
+  // Reemplazar "texto" por <strong>texto</strong>, quitando las comillas
+  processedText = processedText.replace(/"([^"]+)"/g, '<strong>$1</strong>');
+  
+  // Reemplazar los marcadores __QUOTE__ por comillas reales
+  processedText = processedText.replace(/__QUOTE__/g, '"');
 
-  return boldText;
+  // Separar los párrafos entre medio y agregar \n entre párrafos
+  const paragraphs = processedText.split(/\n{2,}/g);
+  processedText = paragraphs.map(p => `<p>${p}</p>`).join('\n');
+
+  // Sanitizar el HTML generado
+  const sanitizedText = DOMPurify.sanitize(processedText);
+  return sanitizedText;
 };
+
+
 
 
 
@@ -39,7 +50,7 @@ export const AssistantMessage = ({ text, isComplete, onFeedback }) => {
           {/* Contenedor para el logo y el texto */}
           <div className="flex items-start w-full">
             {/* Logo a la izquierda con tamaño más pequeño */}
-            <img src="images/logo.png" alt="Logo" className="h-6 mr-2 mt-1" />
+            <img src="images/lupa.png" alt="Logo" className="h-6 mr-2 mt-1" />
 
             {/* Texto alineado al lado del logo */}
             <span

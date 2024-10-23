@@ -112,10 +112,12 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
   const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
-    const typingSpeed = 100;
+    const typingSpeed = 10;
+
     const interval = setInterval(() => {
       currentText += fullText.charAt(i);
       i++;
+
       setMessages((prevMessages) => {
         const newMessages = [...prevMessages];
         newMessages[index] = {
@@ -124,6 +126,10 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
         };
         return newMessages;
       });
+
+      // Desplazar al final después de actualizar el mensaje
+      scrollToBottom();
+
       if (i >= fullText.length) {
         clearInterval(interval);
         // Una vez que el mensaje está completo, marcamos 'isComplete' como true

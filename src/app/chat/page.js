@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { auth, db } from '../../../firebase-credentials';
-import { doc, setDoc, getDoc, updateDoc, addDoc, collection, arrayUnion } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, addDoc, collection, arrayUnion, deleteDoc } from "firebase/firestore";
 import ProjectSelector from '@/components/ChatPage/ProjectSelector';
 import DocumentSelector from '@/components/ChatPage/DocumentSelector';
 import ProjectInfo, { initialMandatoryTags } from '@/components/ChatPage/ProjectInfo';
@@ -15,6 +15,7 @@ import SuccessModal from '@/components/Modals/SuccessModal';
 import WarningModal from '@/components/Modals/WarningModal';
 import PdfRequestModal from '@/components/Modals/PdfRequestModal';
 import OpinionModal from '@/components/Modals/OpinionModal';
+import AlertModal from '@/components/Modals/AlertModal';
 
 
 export default function HomePage() {
@@ -22,7 +23,10 @@ export default function HomePage() {
   const [selectedDocuments, setSelectedDocuments] = useState([]); // Cambiado a array
   const [availablePDFs, setAvailablePDFs] = useState({});
   const [selectedRegion, setSelectedRegion] = useState('Normativas nacionales');
-  const [projectInfo, setProjectInfo] = useState(initialMandatoryTags);
+  const [projectInfo, setProjectInfo] = useState(
+    initialMandatoryTags.map(tag => ({ ...tag, value: '' }))
+  );
+  
   const [localProjectData, setLocalProjectData] = useState({});
   const [selectedProject, setSelectedProject] = useState(null);
   const [isProjectInfoUpdated, setIsProjectInfoUpdated] = useState(false);
@@ -36,6 +40,7 @@ export default function HomePage() {
   const [isPdfRequestModalOpen, setIsPdfRequestModalOpen] = useState(false);
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false); // Estado para el modal de opinión
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(true);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
 
 
@@ -49,6 +54,8 @@ export default function HomePage() {
   const [warningMessage, setWarningMessage] = useState('');
   const [warningType, setWarningType] = useState(null);
   const [pendingQuestion, setPendingQuestion] = useState('');
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   // Estados para el modal de éxito
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -63,6 +70,11 @@ export default function HomePage() {
   const handleChatClick = () => {
     setIsProjectInfoOpen(false); // Cerrar ProjectInfo
   };
+
+  useEffect(() => {
+    setProjectInfo(initialMandatoryTags.map(tag => ({ ...tag, value: '' })));
+  }, [resetTagsTrigger]);
+  
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -132,6 +144,18 @@ export default function HomePage() {
       }
     }
   };
+
+  const handleDeleteProject = (projectId) => {
+    // Buscar el proyecto por su ID para obtener el nombre
+    const project = userData.projects.find((p) => p.projectId === projectId);
+    setProjectToDelete(project);
+    setWarningMessage(
+      `¿Estás seguro de que quieres borrar el proyecto "${project.name}"? Esta acción no se puede deshacer.`
+    );
+    setWarningType('deleteProject');
+    setShowWarningModal(true);
+  };
+  
 
   const closeOpinionModal = async () => {
     setIsOpinionModalOpen(false);
@@ -291,6 +315,13 @@ export default function HomePage() {
   };
 
   const handleNewProject = () => {
+    if (userData.projects && userData.projects.length >= 10) {
+      // Mostrar el AlertModal
+      setAlertMessage('Has alcanzado el límite de 10 proyectos en la beta. Por favor, borra algún proyecto para poder crear uno nuevo.');
+      setShowAlertModal(true);
+      return;
+    }
+
     if (isProjectInfoUpdated) {
       // Si hay cambios no guardados, mostrar el modal de confirmación
       setShowConfirmation(true);
@@ -301,10 +332,18 @@ export default function HomePage() {
   };
 
   const handleConfirmNewProject = (confirmed) => {
+    setShowConfirmation(false); // Ocultar el modal después de la confirmación
+
     if (confirmed) {
+      if (userData.projects && userData.projects.length >= 10) {
+        // Mostrar el AlertModal
+        setAlertMessage('Has alcanzado el límite de 10 proyectos en la beta. Por favor, borra algún proyecto para poder crear uno nuevo.');
+        setShowAlertModal(true);
+        return;
+      }
+
       clearProjectInfo();
     }
-    setShowConfirmation(false); // Ocultar el modal después de la confirmación
   };
 
   const handleRegionSelect = (region) => {
@@ -385,8 +424,8 @@ export default function HomePage() {
   
     setSelectedProject({ projectId: null, name: projectDisplayName });
   
-    // Restablecer la información del proyecto
-    setProjectInfo([]);
+    // Restablecer la información del proyecto con las etiquetas obligatorias
+    setProjectInfo(initialMandatoryTags.map(tag => ({ ...tag, value: '' })));
   
     // Alternar el estado para reiniciar las etiquetas en ProjectInfo
     setResetTagsTrigger(prev => !prev);
@@ -400,6 +439,59 @@ export default function HomePage() {
     setInitialMessages([]);
   };
   
+  const handleConfirmDeleteProject = async () => {
+    setShowWarningModal(false);
+    if (!projectToDelete) return;
+  
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No user logged in!");
+        return;
+      }
+  
+      // Eliminar el proyecto de Firestore
+      await deleteDoc(doc(db, 'Projects', projectToDelete.projectId));
+  
+      // Actualizar la lista de proyectos del usuario
+      const updatedProjects = userData.projects.filter(
+        (p) => p.projectId !== projectToDelete.projectId
+      );
+      await updateDoc(doc(db, "Users", user.uid), {
+        projects: updatedProjects,
+      });
+  
+      setUserData((prevData) => ({
+        ...prevData,
+        projects: updatedProjects,
+      }));
+  
+      // Si el proyecto eliminado estaba seleccionado, limpiar la selección
+      if (
+        selectedProject &&
+        selectedProject.projectId === projectToDelete.projectId
+      ) {
+        setSelectedProject(null);
+        setProjectInfo([]);
+        setInitialMessages([]);
+      }
+  
+      // Eliminar el proyecto de la caché local
+      setLocalProjectData((prevData) => {
+        const newData = { ...prevData };
+        delete newData[projectToDelete.projectId];
+        return newData;
+      });
+  
+      setSuccessMessage('Proyecto borrado con éxito.');
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error al borrar el proyecto:', error);
+      alert('Error al borrar el proyecto.');
+    } finally {
+      setProjectToDelete(null);
+    }
+  };
   
 
 
@@ -772,8 +864,14 @@ const handleSendMessage = async (question) => {
   const handleWarningCancel = () => {
     setShowWarningModal(false);
     setPendingQuestion('');
-    handleSendMessageResolveRef.current({ sent: false });
+  
+    // Solo llamar a handleSendMessageResolveRef.current si es una función
+    if (typeof handleSendMessageResolveRef.current === 'function') {
+      handleSendMessageResolveRef.current({ sent: false });
+      handleSendMessageResolveRef.current = null; // Restablecer después de usar
+    }
   };
+  
   
   
   
@@ -796,19 +894,6 @@ const handleSendMessage = async (question) => {
   
     setIsGeneratingTags(true);
   
-    // Combinar projectInfo con initialMandatoryTags para asegurarnos de que tenemos todas las etiquetas obligatorias
-    const combinedProjectInfo = initialMandatoryTags.map(tag => {
-      const existingTag = projectInfo.find(t => t.name === tag.name);
-      return existingTag ? existingTag : tag;
-    });
-  
-    // Añadir etiquetas personalizadas existentes
-    const existingCustomTags = projectInfo.filter(
-      tag => !initialMandatoryTags.some(mTag => mTag.name === tag.name)
-    );
-  
-    combinedProjectInfo.push(...existingCustomTags);
-  
     try {
       const response = await fetch(
         'http://localhost:5001/arquitest-8ecf6/us-central1/generateAdditionalTags',
@@ -818,7 +903,7 @@ const handleSendMessage = async (question) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            etiquetasActuales: combinedProjectInfo,
+            etiquetasActuales: projectInfo,
             textoProyecto: automaticText,
           }),
         }
@@ -831,52 +916,89 @@ const handleSendMessage = async (question) => {
       const data = await response.json();
       const etiquetasAdicionales = data.etiquetasAdicionales;
   
-      // Actualizar etiquetas obligatorias con los valores generados
-      const updatedMandatoryTags = combinedProjectInfo.map(tag => {
-        if (initialMandatoryTags.some(mTag => mTag.name === tag.name)) {
-          const generatedTag = etiquetasAdicionales.find(
-            gTag => gTag.name.toLowerCase() === tag.name.toLowerCase()
-          );
-          if (generatedTag && (!tag.value || tag.value.trim() === '')) {
-            return { ...tag, value: generatedTag.value };
-          }
+      // Función para normalizar nombres de etiquetas
+      const normalizeTagName = (tagName) => {
+        let normalized = tagName.toLowerCase();
+        normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Eliminar acentos
+        normalized = normalized.replace(/[^\w\s]/gi, ''); // Eliminar puntuación
+        normalized = normalized.trim();
+  
+        // Mapear variaciones conocidas a nombres estándar
+        const nameMapping = {
+          'numero de plantas': 'num plantas',
+          'número de plantas': 'num plantas',
+          'num plantas': 'num plantas',
+          'num. plantas': 'num plantas',
+          'superficie del edificio': 'superficie del edificio',
+          'superficie edificio': 'superficie del edificio',
+          'uso de edificio': 'uso de edificio',
+          'uso edificio': 'uso de edificio',
+          'zona climatica': 'zona climatica',
+          'altura': 'altura',
+          // Agrega otros mapeos según sea necesario
+        };
+  
+        if (nameMapping[normalized]) {
+          normalized = nameMapping[normalized];
         }
-        return tag;
+        return normalized;
+      };
+  
+      // Crear un mapa de las etiquetas existentes por nombre normalizado
+      const existingTagsMap = {};
+      projectInfo.forEach(tag => {
+        const normalizedTagName = normalizeTagName(tag.name);
+        existingTagsMap[normalizedTagName] = tag;
       });
   
-      // Filtrar etiquetas personalizadas que ya existen y tienen valor
-      const maintainedCustomTags = existingCustomTags.filter(
-        tag => tag.value && tag.value.trim() !== ''
+      // Crear un conjunto de nombres de etiquetas obligatorias normalizadas
+      const mandatoryTagNamesSet = new Set(
+        initialMandatoryTags.map(tag => normalizeTagName(tag.name))
       );
-      const existingTagIds = projectInfo.map(tag => tag.id);
-
-      // Añadir nuevas etiquetas personalizadas generadas que no existen ya
-      const newCustomTags = etiquetasAdicionales
-        .filter(gTag => {
-          const isDefaultTag = initialMandatoryTags.some(
-            mTag => mTag.name === gTag.name
-          );
-          const isExistingTag = projectInfo.some(
-            pTag => pTag.name === gTag.name
-          );
-          return !isDefaultTag && !isExistingTag;
-        })
-        .map(tag => ({
-          ...tag,
-          id: uuidv4(), // Asignar un id único
-          type: 'input',
-      }));
-      // Actualizar maintainedCustomTags con ids si falta
-      const updatedMaintainedCustomTags = maintainedCustomTags.map(tag => ({
-        ...tag,
-        id: tag.id || uuidv4(),
-      }));
   
-      // Fusionar todas las etiquetas personalizadas
-      const updatedCustomTags = [...updatedMaintainedCustomTags, ...newCustomTags];
+      // Procesar las etiquetas generadas
+      etiquetasAdicionales.forEach(generatedTag => {
+        const normalizedTagName = normalizeTagName(generatedTag.name);
+        if (existingTagsMap[normalizedTagName]) {
+          // Si la etiqueta ya existe, actualizamos su valor
+          const existingTag = existingTagsMap[normalizedTagName];
+          existingTag.value = generatedTag.value;
+        } else {
+          // Si la etiqueta no existe, la añadimos
+          const newTag = {
+            ...generatedTag,
+            id: uuidv4(),
+            type: 'input',
+          };
+          existingTagsMap[normalizedTagName] = newTag;
+        }
+      });
   
-      // Fusionar todas las etiquetas (obligatorias y personalizadas)
-      const updatedProjectInfo = [...updatedMandatoryTags, ...updatedCustomTags];
+      // Convertir el mapa de vuelta a un array
+      let updatedProjectInfo = Object.values(existingTagsMap);
+  
+      // Ordenar las etiquetas para que las obligatorias aparezcan primero en el orden correcto
+      updatedProjectInfo.sort((a, b) => {
+        const aIsMandatory = mandatoryTagNamesSet.has(normalizeTagName(a.name));
+        const bIsMandatory = mandatoryTagNamesSet.has(normalizeTagName(b.name));
+  
+        if (aIsMandatory && bIsMandatory) {
+          // Si ambos son obligatorios, mantener el orden de initialMandatoryTags
+          const aIndex = initialMandatoryTags.findIndex(
+            tag => normalizeTagName(tag.name) === normalizeTagName(a.name)
+          );
+          const bIndex = initialMandatoryTags.findIndex(
+            tag => normalizeTagName(tag.name) === normalizeTagName(b.name)
+          );
+          return aIndex - bIndex;
+        } else if (aIsMandatory) {
+          return -1;
+        } else if (bIsMandatory) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
   
       setProjectInfo(updatedProjectInfo);
       setIsProjectInfoUpdated(true);
@@ -887,6 +1009,9 @@ const handleSendMessage = async (question) => {
       setIsGeneratingTags(false);
     }
   };
+  
+  
+  
   
   if (warningType === 'unsavedChanges') {
     warningButtons = [
@@ -922,6 +1047,19 @@ const handleSendMessage = async (question) => {
         className: 'button-common-style',
       },
     ];
+  } else if (warningType === 'deleteProject') {
+    warningButtons = [
+      {
+        label: 'Borrar',
+        onClick: handleConfirmDeleteProject,
+        className: 'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600',
+      },
+      {
+        label: 'Cancelar',
+        onClick: handleWarningCancel,
+        className: 'bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400',
+      },
+    ];
   }
   
   if (!userData) {
@@ -931,11 +1069,12 @@ const handleSendMessage = async (question) => {
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden">
       <div className="flex flex-col w-48 bg-[#F4EDE4]">
-        <ProjectSelector 
-          projects={userData?.projects || []} 
-          onSelect={handleSelectProject} 
-          onNewProject={handleNewProject} 
+        <ProjectSelector
+          projects={userData?.projects || []}
+          onSelect={handleSelectProject}
+          onNewProject={handleNewProject}
           selectedProject={selectedProject}
+          onDeleteProject={handleDeleteProject} // Nueva prop
         />
       </div>
   
@@ -1037,6 +1176,12 @@ const handleSendMessage = async (question) => {
       )}
       {isOpinionModalOpen && (
         <OpinionModal onClose={closeOpinionModal} />
+      )}
+      {showAlertModal && (
+        <AlertModal
+          message={alertMessage}
+          onClose={() => setShowAlertModal(false)}
+        />
       )}
     </div>
   );

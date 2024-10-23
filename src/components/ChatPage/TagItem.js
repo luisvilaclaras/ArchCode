@@ -16,7 +16,7 @@ function TagItem({ tag, initialMandatoryTags, handleDeleteTag, handleTagEdit }) 
       {!initialMandatoryTags.some(mTag => mTag.name === tag.name) && (
         <button
           onClick={() => handleDeleteTag(tag.name)}
-          className="absolute top-1 right-1 text-red-200 hover:text-red-800"
+          className="absolute top-1 right-1 text-red-400 hover:text-red-800"
         >
           <FaTimes />
         </button>
