@@ -3,27 +3,37 @@ import { FaPaperPlane } from 'react-icons/fa';
 import { UserMessage } from './UserMessage';
 import { AssistantMessage } from './AssistantMessage';
 
-export default function Chat({ onSendMessage, onChatClick, initialMessages, onSaveConversation, onFeedback }) {
-
+export default function Chat({
+  onSendMessage,
+  onChatClick,
+  initialMessages,
+  onSaveConversation,
+  onFeedback,
+  isWaitingForResponse, // Recibimos isWaitingForResponse como prop
+  onStartWaitingResponse, // Recibimos onStartWaitingResponse como prop
+  onEndWaitingResponse, // Recibimos onEndWaitingResponse como prop
+}) {
   // Manejamos el estado de mensajes internamente
   const [messages, setMessages] = useState(() => initialMessages || []);
 
   const [input, setInput] = useState('');
-  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
-  const messagesEndRef = useRef(null); // Referencia al final de los mensajes
+  const messagesContainerRef = useRef(null); // Nueva referencia al contenedor de mensajes
 
   // Actualizar los mensajes cuando initialMessages cambie
   useEffect(() => {
-    if (JSON.stringify(messages) !== JSON.stringify(initialMessages)) {
-      setMessages(initialMessages || []);
-    }
+    setMessages(initialMessages || []);
   }, [initialMessages]);
 
   // Función para desplazarse al final
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
   };
 
   // Desplazarse al final cuando los mensajes cambien
@@ -51,7 +61,9 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
       setInput('');
 
       // Indicar que estamos esperando una respuesta
-      setIsWaitingForResponse(true);
+      if (onStartWaitingResponse) {
+        onStartWaitingResponse();
+      }
 
       try {
         const response = await onSendMessage(question);
@@ -76,12 +88,20 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
                 text: response.responseText || 'No se recibió una respuesta válida.',
                 isComplete: true, // Marcamos como completa
               };
+              // Indicar que ya no estamos esperando una respuesta
+              if (onEndWaitingResponse) {
+                onEndWaitingResponse();
+              }
             }
             return newMessages;
           });
         } else {
           // Si no se envió el mensaje, eliminar los mensajes agregados
           setMessages((prevMessages) => prevMessages.slice(0, -2));
+          // Indicar que ya no estamos esperando una respuesta
+          if (onEndWaitingResponse) {
+            onEndWaitingResponse();
+          }
         }
       } catch (error) {
         console.error('Error al enviar el mensaje:', error);
@@ -96,9 +116,12 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
           };
           return newMessages;
         });
+        // Indicar que ya no estamos esperando una respuesta
+        if (onEndWaitingResponse) {
+          onEndWaitingResponse();
+        }
       } finally {
-        // Restablecer indicador de espera
-        setIsWaitingForResponse(false);
+        // No llamamos a onEndWaitingResponse aquí, lo haremos después
       }
     }
   };
@@ -127,8 +150,10 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
         return newMessages;
       });
 
-      // Desplazar al final después de actualizar el mensaje
-      scrollToBottom();
+      // Desplazar al final después de actualizar el mensaje, asegurando que el DOM se haya actualizado
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
 
       if (i >= fullText.length) {
         clearInterval(interval);
@@ -146,6 +171,11 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
         if (onSaveConversation) {
           onSaveConversation(question, fullText);
         }
+
+        // Indicar que ya no estamos esperando una respuesta
+        if (onEndWaitingResponse) {
+          onEndWaitingResponse();
+        }
       }
     }, typingSpeed);
   };
@@ -153,7 +183,9 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault(); // Evitar salto de línea
-      handleSendMessage();
+      if (!isWaitingForResponse) {
+        handleSendMessage();
+      }
     }
   };
 
@@ -212,7 +244,10 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" onClick={handleChatClick}>
-      <div className="flex-1 overflow-y-auto p-4 bg-[#FFFFFF] rounded-lg shadow-md mb-4">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 bg-[#FFFFFF] rounded-lg shadow-md mb-4"
+      >
         {messages.map((msg, index) =>
           msg.sender === 'user' ? (
             <UserMessage key={index} text={msg.text} />
@@ -225,7 +260,6 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
             />
           )
         )}
-        <div ref={messagesEndRef} /> {/* Elemento para referencia */}
       </div>
       <div className="p-2 border-t border-gray-200 flex justify-center bg-[#FFFFFF]">
         <div className="relative w-full max-w-xl">
@@ -237,8 +271,8 @@ export default function Chat({ onSendMessage, onChatClick, initialMessages, onSa
             rows="1"
             className="w-full py-2 pl-4 pr-10 rounded-lg bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
             placeholder="Escribe un mensaje"
-            disabled={isWaitingForResponse}
-            style={{ maxHeight: '200px' }} // Limitar la altura máxima
+            // Eliminamos disabled={isWaitingForResponse}
+            style={{ maxHeight: '200px' }}
           />
           <button
             onClick={handleSendMessage}

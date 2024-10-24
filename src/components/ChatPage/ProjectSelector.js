@@ -7,22 +7,30 @@ export default function ProjectSelector({
   onSelect,
   onNewProject,
   selectedProject,
-  onDeleteProject, // Nueva prop
+  onDeleteProject,
+  isWaitingForResponse, // Nuevo prop
 }) {
   const handleProjectClick = (projectId) => {
-    onSelect(projectId);
+    if (!isWaitingForResponse) {
+      onSelect(projectId);
+    }
   };
 
   const handleNewProjectClick = () => {
-    onNewProject();
+    if (!isWaitingForResponse) {
+      onNewProject();
+    }
   };
 
   return (
-    <div className="p-4 bg-[#f3f4f6] h-full border-r-2 border-white">
+    <div className="relative p-4 bg-[#f3f4f6] h-full border-r-2 border-white">
       {/* Botón para crear un nuevo proyecto */}
       <button
         onClick={handleNewProjectClick}
-        className="mb-4 w-full py-2 px-6 bg-[#344e6f] text-white rounded-md hover:opacity-90 transition-opacity duration-300 text-sm font-medium whitespace-nowrap"
+        disabled={isWaitingForResponse}
+        className={`mb-4 w-full py-2 px-6 bg-[#344e6f] text-white rounded-md hover:opacity-90 transition-opacity duration-300 text-sm font-medium whitespace-nowrap ${
+          isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
       >
         + Nuevo Proyecto
       </button>
@@ -44,7 +52,9 @@ export default function ProjectSelector({
                       ? 'bg-[#344e6f] text-white'
                       : 'bg-[#FFFFFF] text-black'
                   } 
-                  hover:opacity-90 transition-opacity duration-300 text-sm font-medium whitespace-nowrap cursor-pointer`}
+                  hover:opacity-90 transition-opacity duration-300 text-sm font-medium whitespace-nowrap cursor-pointer ${
+                    isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 style={{
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -61,13 +71,15 @@ export default function ProjectSelector({
 
                 {/* Icono de papelera con funcionalidad de borrado */}
                 <FaTrash
-                  className={`ml-2 cursor-pointer hover:text-red-600 transition-colors duration-200 ${
+                  className={`ml-2 transition-colors duration-200 ${
                     isSelected ? 'text-white' : 'text-[#344e6f]'
-                  }`}
+                  } ${isWaitingForResponse ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:text-red-600'}`}
                   size={12}
                   onClick={(e) => {
                     e.stopPropagation(); // Evita que el clic se propague al seleccionar el proyecto
-                    onDeleteProject(projectId);
+                    if (!isWaitingForResponse) {
+                      onDeleteProject(projectId);
+                    }
                   }}
                 />
               </motion.div>
@@ -75,6 +87,11 @@ export default function ProjectSelector({
           })}
         </AnimatePresence>
       </div>
+
+      {/* Overlay cuando isWaitingForResponse es true */}
+      {isWaitingForResponse && (
+        <div className="absolute inset-0 bg-white bg-opacity-50 cursor-not-allowed"></div>
+      )}
     </div>
   );
 }

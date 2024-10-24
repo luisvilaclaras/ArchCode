@@ -62,6 +62,10 @@ export default function HomePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [initialMessages, setInitialMessages] = useState([]);
 
+  // HomePage.js
+  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+
+
 
   let warningButtons = [];
 
@@ -241,6 +245,9 @@ export default function HomePage() {
   };
   
   const handleProjectSelect = async (projectId) => {
+    // Limpiar los mensajes actuales
+    setInitialMessages([]);
+  
     // Verificar si el proyecto está en la caché local
     if (localProjectData[projectId]) {
       const projectData = localProjectData[projectId];
@@ -248,7 +255,7 @@ export default function HomePage() {
       setProjectInfo(projectData.content || []);
       setIsProjectInfoUpdated(false);
   
-      // Cargar la conversación desde la caché local
+      // Cargar la conversación desde localProjectData
       const conversation = projectData.conversation || [];
   
       // Formatear los mensajes para el chat
@@ -297,6 +304,7 @@ export default function HomePage() {
       }
     }
   };
+  
 
   
 
@@ -371,17 +379,19 @@ export default function HomePage() {
       // Generar un ID único para el proyecto
       const projectId = uuidv4();
   
-      // Crear el documento del proyecto
+      // Crear el documento del proyecto, incluyendo 'conversation: []'
       await setDoc(doc(db, 'Projects', projectId), {
         name: projectDisplayName,
         content: projectContent,
         userId: user.uid,
+        conversation: [], // Inicializar la conversación como un array vacío
       });
   
       // Actualizar la lista de proyectos del usuario
       const updatedProjects = userData.projects
         ? [{ projectId, name: projectDisplayName }, ...userData.projects]
         : [{ projectId, name: projectDisplayName }];
+  
       await updateDoc(doc(db, "Users", user.uid), {
         projects: updatedProjects,
       });
@@ -397,7 +407,7 @@ export default function HomePage() {
         [projectId]: {
           name: projectDisplayName,
           content: projectContent,
-          conversation: [],
+          conversation: [], // Inicializar la conversación en localProjectData
         },
       }));
   
@@ -412,6 +422,7 @@ export default function HomePage() {
       return null;
     }
   };
+  
   
 
   
@@ -727,27 +738,31 @@ const handleSendMessage = async (question) => {
     try {
       const projectRef = doc(db, 'Projects', selectedProject.projectId);
   
+      // Obtener la conversación actual del proyecto desde localProjectData
+      let currentConversation = localProjectData[selectedProject.projectId]?.conversation || [];
+  
+      // Añadir la nueva conversación sin mutar el array original
+      const newConversation = [...currentConversation, { question, answer }];
+  
       // Actualizar el campo 'conversation' en el documento del proyecto
       await updateDoc(projectRef, {
-        conversation: arrayUnion({ question, answer }),
+        conversation: newConversation,
       });
   
-      // Actualizar la conversación en localProjectData
-      setLocalProjectData((prevData) => {
-        const updatedProject = { ...prevData[selectedProject.projectId] };
-        if (!updatedProject.conversation) {
-          updatedProject.conversation = [];
-        }
-        updatedProject.conversation.push({ question, answer });
-        return {
-          ...prevData,
-          [selectedProject.projectId]: updatedProject,
-        };
-      });
+      // Actualizar la conversación en localProjectData sin mutar el estado directamente
+      setLocalProjectData((prevData) => ({
+        ...prevData,
+        [selectedProject.projectId]: {
+          ...prevData[selectedProject.projectId],
+          conversation: newConversation,
+        },
+      }));
     } catch (error) {
       console.error('Error al guardar la conversación:', error);
     }
   };
+  
+  
   
 
   
@@ -1078,6 +1093,8 @@ const handleSendMessage = async (question) => {
           onNewProject={handleNewProject}
           selectedProject={selectedProject}
           onDeleteProject={handleDeleteProject} // Nueva prop
+          isWaitingForResponse={isWaitingForResponse}
+
         />
       </div>
   
@@ -1144,6 +1161,9 @@ const handleSendMessage = async (question) => {
           onSaveConversation={handleSaveConversation}
           initialMessages={initialMessages}
           onFeedback={handleFeedback} // Pasamos la función al componente Chat
+          isWaitingForResponse={isWaitingForResponse}
+          onStartWaitingResponse={() => setIsWaitingForResponse(true)}
+          onEndWaitingResponse={() => setIsWaitingForResponse(false)}
         />
       
 
