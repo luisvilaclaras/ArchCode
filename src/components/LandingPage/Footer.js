@@ -14,7 +14,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#1e3047] py-12 px-6 text-white">
+    <footer className="bg-[#1e3047] py-12 px-6 text-white font-personalizada">
       <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
         
         {/* Logo and tagline section */}

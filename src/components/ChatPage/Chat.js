@@ -135,7 +135,7 @@ export default function Chat({
   const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
-    const typingSpeed = 10;
+    const typingSpeed = 1;
 
     const interval = setInterval(() => {
       currentText += fullText.charAt(i);

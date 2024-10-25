@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import TagItem from './TagItem';
 import AlertModal from '@/components/Modals/AlertModal';
 
+const MAX_CHARACTERS = 500;
+
 export const initialMandatoryTags = [
   {
     id: 'uso-de-edificio',
@@ -57,7 +59,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   ref
 ) {
   const projectInfoRef = ref || useRef(null);
-  const tagsContainerRef = useRef(null); // Nueva referencia para el contenedor de etiquetas
+  const tagsContainerRef = useRef(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [mandatoryTags, setMandatoryTags] = useState(
     initialMandatoryTags.map(tag => ({ ...tag }))
@@ -70,6 +72,11 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   const [localProjectName, setLocalProjectName] = useState(projectName);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [characterCount, setCharacterCount] = useState(0);
+
+  useEffect(() => {
+    setCharacterCount(automaticText.length);
+  }, [automaticText]);
 
   useEffect(() => {
     setLocalProjectName(projectName);
@@ -93,14 +100,13 @@ const ProjectInfo = forwardRef(function ProjectInfo(
     if (info && info.length > 0) {
       const defaultTagNames = initialMandatoryTags.map(tag => tag.name);
 
-      // Para las etiquetas obligatorias
       const updatedMandatoryTags = initialMandatoryTags.map(tag => {
         const foundTag = info.find(t => t.name === tag.name);
         if (foundTag) {
           return {
             ...tag,
             value: foundTag.value,
-            id: foundTag.id || tag.id, // Usamos el ID de la base de datos o el ID fijo
+            id: foundTag.id || tag.id,
           };
         } else {
           return {
@@ -111,12 +117,11 @@ const ProjectInfo = forwardRef(function ProjectInfo(
         }
       });
 
-      // Para las etiquetas personalizadas
       const newCustomTags = info
         .filter(tag => !defaultTagNames.includes(tag.name))
         .map(tag => ({
           ...tag,
-          id: tag.id || uuidv4(), // Usamos el ID de la base de datos o generamos uno nuevo
+          id: tag.id || uuidv4(),
         }));
 
       setMandatoryTags(updatedMandatoryTags);
@@ -128,8 +133,6 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       setCustomTags([]);
     }
   }, [info]);
-  
-  
 
   useEffect(() => {
     setDisplayedTags([...mandatoryTags, ...customTags]);
@@ -137,6 +140,13 @@ const ProjectInfo = forwardRef(function ProjectInfo(
 
   const toggleOpen = () => {
     setIsOpen(!isOpen);
+  };
+
+  const handleTextChange = (e) => {
+    const text = e.target.value;
+    if (text.length <= MAX_CHARACTERS) {
+      setAutomaticText(text);
+    }
   };
 
   const handleAddTag = () => {
@@ -170,7 +180,6 @@ const ProjectInfo = forwardRef(function ProjectInfo(
       onUpdateInfo([...mandatoryTags, ...updatedTags]);
       setIsProjectInfoUpdated(true);
 
-      // Desplazar el contenedor de etiquetas hacia abajo
       setTimeout(() => {
         if (tagsContainerRef.current) {
           tagsContainerRef.current.scrollTo({
@@ -178,7 +187,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
             behavior: 'smooth',
           });
         }
-      }, 100); // Añadir un pequeño retraso para asegurarse de que la nueva etiqueta esté presente
+      }, 100);
     }
   };
 
@@ -233,7 +242,6 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   const handleSave = () => {
     const projectData = [...mandatoryTags, ...customTags];
 
-    // Verificar si todas las etiquetas están vacías
     const isProjectEmpty = projectData.every(
       tag => !tag.value || tag.value.trim() === ''
     );
@@ -249,7 +257,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   };
 
   const handleProjectNameClick = (e) => {
-    e.stopPropagation(); // Evita que el clic en el nombre togglee el despliegue
+    e.stopPropagation();
     if (!isProjectSaved) {
       setAlertMessage('Guarda primero el proyecto para poder cambiarle el nombre. Para poder guardarlo, el proyecto no puede estar vacío.');
       setShowAlertModal(true);
@@ -261,14 +269,13 @@ const ProjectInfo = forwardRef(function ProjectInfo(
   const handleNameBlur = () => {
     setIsEditingName(false);
     const trimmedName = localProjectName.trim();
-  
+
     if (trimmedName !== '') {
       onProjectNameChange(trimmedName);
     } else {
       setLocalProjectName(projectName);
     }
   };
-  
 
   const handleNameKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -304,13 +311,12 @@ const ProjectInfo = forwardRef(function ProjectInfo(
                 if (newValue.length <= 14) {
                   setLocalProjectName(newValue);
                 }
-                // Si la longitud es mayor a 19, no actualizamos el estado y el input no cambiará
               }}
               onBlur={handleNameBlur}
               onKeyDown={handleNameKeyDown}
               className="text-lg font-semibold text-[#333333] border-b border-gray-400 focus:outline-none"
               autoFocus
-              onClick={(e) => e.stopPropagation()} // Evita togglear al hacer clic en el input
+              onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <h2
@@ -332,7 +338,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
         </div>
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Evita que el clic en el botón se propague
+            e.stopPropagation();
             toggleOpen();
           }}
           className="ml-2 text-gray-600 hover:text-gray-800"
@@ -351,9 +357,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
             className="overflow-hidden"
           >
             <div className="flex mt-2 gap-8">
-              {/* Columna Izquierda */}
               <div className="flex flex-col w-1/3 pr-4 border-r border-gray-300">
-                {/* Botones de Modo como Toggle */}
                 <div className="flex mb-4 gap-0">
                   <button
                     onClick={() => handleModeSwitch('automatic')}
@@ -377,7 +381,6 @@ const ProjectInfo = forwardRef(function ProjectInfo(
                   </button>
                 </div>
 
-                {/* Campos de Entrada */}
                 <div
                   className="flex flex-col items-center gap-2 mt-2"
                   style={{ minHeight: '140px' }}
@@ -415,11 +418,14 @@ const ProjectInfo = forwardRef(function ProjectInfo(
                     <>
                       <textarea
                         placeholder="Ingresa una descripción del proyecto"
-                        className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50"
+                        className="w-full p-1 border border-gray-300 rounded-lg bg-gray-50 relative"
                         style={{ height: '100px' }}
                         value={automaticText}
-                        onChange={(e) => setAutomaticText(e.target.value)}
+                        onChange={handleTextChange}
                       />
+                      <div className="text-sm text-gray-500 text-right">
+                        {characterCount}/{MAX_CHARACTERS} caracteres
+                      </div>
                       <button
                         onClick={() =>
                           onGenerateAutomaticTags(automaticText)
@@ -434,9 +440,8 @@ const ProjectInfo = forwardRef(function ProjectInfo(
                 </div>
               </div>
 
-              {/* Columna Derecha - Deslizable */}
               <div
-                ref={tagsContainerRef} // Añadir referencia al contenedor de etiquetas
+                ref={tagsContainerRef}
                 className="overflow-y-auto max-h-[160px] grid grid-cols-4 gap-2 w-2/3 custom-scrollbar ml-2 mb-4"
               >
                 <AnimatePresence>
@@ -453,7 +458,6 @@ const ProjectInfo = forwardRef(function ProjectInfo(
               </div>
             </div>
 
-            {/* Botón Guardar Proyecto */}
             <div className="absolute bottom-0 right-4">
               <button
                 onClick={handleSave}
@@ -466,7 +470,6 @@ const ProjectInfo = forwardRef(function ProjectInfo(
         )}
       </AnimatePresence>
 
-      {/* Modal de alerta */}
       {showAlertModal && (
         <AlertModal
           message={alertMessage}
@@ -474,21 +477,20 @@ const ProjectInfo = forwardRef(function ProjectInfo(
         />
       )}
 
-      {/* Estilos comunes para los botones */}
       <style jsx>{`
         .button-common-style {
-          width: 140px; /* Hacemos el botón más largo */
-          height: 40px; /* Aumentamos la altura para un formato más rectangular */
+          width: 140px;
+          height: 40px;
           font-size: 0.9rem;
           padding: 0.5rem;
-          background-color: #344e6f; /* Color azul sólido */
+          background-color: #344e6f;
           color: white;
-          border-radius: 12px; /* Menos redondeado para un efecto más rectangular */
+          border-radius: 12px;
           text-align: center;
           display: inline-block;
           transition: opacity 0.3s;
         }
-       
+
         .button-common-style:hover {
           opacity: 0.9;
         }
@@ -500,7 +502,7 @@ const ProjectInfo = forwardRef(function ProjectInfo(
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: #1A3D7C; /* Color sólido para la barra de desplazamiento */
+          background-color: #1A3D7C;
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {

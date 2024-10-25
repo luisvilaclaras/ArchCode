@@ -113,18 +113,12 @@ export default function Menu() {
 
               {/* Menú desplegable */}
               {isProfileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg py-2 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-[#344e6f] text-white rounded-lg shadow-lg py-2 z-50">
                   <button
-                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    onClick={() => router.push('/profile')}
-                  >
-                    Profile
-                  </button>
-                  <button
-                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-white-700 hover:bg-[#344e6f]"
                     onClick={handleLogout}
                   >
-                    Logout
+                    Cerrar Sesión
                   </button>
                 </div>
               )}

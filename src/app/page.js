@@ -45,11 +45,11 @@ export default function Home() {
 
         
          
-        <section id="home" className="font-personalizada hero bg-[#1e3047] text-white h-auto flex items-center justify-center pt-40 pb-20"> 
+        <section id="home" className="hero bg-[#1e3047] text-white h-auto flex items-center justify-center pt-40 pb-20"> 
           <div className="grid grid-cols-2 gap-8 max-w-7xl mx-auto px-10 items-center"> {/* px-10 mantiene el mismo relleno en ambos lados */}
             <div className="text-left">
-              <h1 className="font-personalizada text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura</h1>
-              <p className="text-xl mb-6 font-personalizada">Acelera tus proyectos con la potencia de la IA y ahorra tiempo</p>
+              <h1 className=" text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura</h1>
+              <p className="text-xl mb-6">Acelera tus proyectos con la potencia de la IA y ahorra tiempo</p>
               <button
                       onClick={openSignUpPopup}
                       className="bg-[#2563eb] text-white py-3 px-8 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
@@ -84,7 +84,7 @@ export default function Home() {
         {/* Scrolling Images Section */}
         <ScrollingImages />
         
-        <section id="producto" className="bg-[#1e3047] text-white py-20 pt-32">
+        <section id="producto" className="font-personalizada bg-[#1e3047] text-white py-20 pt-32">
           <div className="text-center mb-5">
             <h1 className="text-5xl font-bold">
               Simplifica el cumplimiento normativo en tus proyectos
@@ -194,7 +194,7 @@ export default function Home() {
 
 
         {/* Information Section */}
-        <section id="ventajas" className="bg-[#1e3047] py-20  text-center">
+        <section id="ventajas" className="font-personalizada bg-[#1e3047] py-20  text-center">
           <h2 className="text-3xl font-bold mb-6 text-white pt-20">
             Agiliza tu Proceso de Investigación
           </h2>
@@ -242,7 +242,7 @@ export default function Home() {
 
         {/* Try For Free Section */}
         <section
-          className="bg-gradient-to-r from-lightBlue to-darkBlue text-white py-20 text-center"
+          className="font-personalizada bg-gradient-to-r from-lightBlue to-darkBlue text-white py-20 text-center"
         >
           <h2 className="text-3xl font-bold mb-6">
             ¡Empieza a agilizar tus proyectos ahora!
@@ -256,12 +256,12 @@ export default function Home() {
         </section>
 
         {/* Reviews Section */}
-        <section id="reviews" className="pt-40">
+        <section id="reviews" className="font-personalizada pt-40">
           <Reviews />
         </section>
 
         {/* Satisfied Users Section */}
-        <section id="nuestro-lema"  className=" pt-40 bg-[#1e3047] text-white py-16 text-center">
+        <section id="nuestro-lema"  className="font-personalizada pt-40 bg-[#1e3047] text-white py-16 text-center">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold mb-4 leading-relaxed">
               "El éxito de un proyecto no solo está en su diseño, sino en su capacidad para cumplir con cada normativa. Contar con las respuestas correctas es tan esencial como los planos mismos."
@@ -278,7 +278,7 @@ export default function Home() {
         {/* 3 Simple Steps Section */}
         <section 
           id="como-se-usa"
-          className="bg-[#1e3047] py-20 text-center pt-30 scroll-mt-20"
+          className="font-personalizada bg-[#1e3047] py-20 text-center pt-30 scroll-mt-20"
           >
           <h2 className="text-4xl font-bold mb-8 text-white">Cómo se Usa</h2>
           <video
@@ -296,7 +296,7 @@ export default function Home() {
 
         {/* FAQ Section */}
         <section id="faq">
-          <div className='pt-20'>
+          <div className='font-personalizada pt-20'>
             <FAQ />
           </div>
         </section>
@@ -304,8 +304,8 @@ export default function Home() {
         {/* Footer Section */}
         <section
           id="contacto"
-          className="bg-gradient-to-r from-lightBlue to-darkBlue text-white py-20 text-center"
-        >
+          className="font-personalizada bg-gradient-to-r from-lightBlue to-darkBlue text-white py-20 text-center"
+          >
           <h2 className="text-3xl font-bold mb-6">
             ¡Empieza a agilizar tus proyectos ahora!
           </h2>

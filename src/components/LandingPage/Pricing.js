@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Pricing({ openSignUpPopup }) {
   return (
-    <section className="bg-[#1e3047] text-white py-16 text-center pt-28">
+    <section className="font-personalizada bg-[#1e3047] text-white py-16 text-center pt-28">
       <h2 className="text-4xl font-bold mb-6">Beta</h2>
       <div className="bg-[#2563eb] text-white p-8 rounded-lg shadow-lg inline-block max-w-md mx-auto">
         <p className="text-3xl font-bold mb-4">Acceso ilimitado durante la beta</p>

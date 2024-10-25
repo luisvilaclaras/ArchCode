@@ -71,7 +71,7 @@ export default function SignUpPopup({ closePopup }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 50 }}
           transition={{ duration: 0.3 }}
-          className="bg-[#1e3047] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
+          className="bg-[#344e6f] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
         >
           <button
             className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"

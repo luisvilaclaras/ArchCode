@@ -89,17 +89,34 @@ export default function HomePage() {
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setUserData(data);
   
-            // Verificar si es momento de mostrar el modal
-            checkAndShowOpinionModal(data);
+            // Fetch the correct projectIds from Firestore
+            const projectsWithIds = await Promise.all(
+              (data.projects || []).map(async (project) => {
+                // If projectId is already a valid ID, skip fetching
+                if (project.projectId && project.projectId !== project.name) {
+                  return project;
+                }
   
-            // Seleccionar el primer proyecto si no hay uno seleccionado
-            if (data.projects && data.projects.length > 0 && !selectedProject) {
-              setSelectedProject(data.projects[0]);
-              // Cargar el proyecto seleccionado
-              handleProjectSelect(data.projects[0].projectId);
-            }
+                // Fetch the project document where name matches
+                const projectsQuery = collection(db, 'Projects');
+                const q = query(projectsQuery, where('userId', '==', user.uid), where('name', '==', project.name));
+                const querySnapshot = await getDocs(q);
+                let projectId = null;
+                querySnapshot.forEach((doc) => {
+                  projectId = doc.id; // Get the document ID
+                });
+  
+                return {
+                  projectId: projectId || project.name, // Use name if ID not found
+                  name: project.name,
+                };
+              })
+            );
+  
+            setUserData({ ...data, projects: projectsWithIds });
+  
+            // Rest of your code...
           } else {
             console.error("No such document!");
           }
@@ -113,6 +130,7 @@ export default function HomePage() {
   
     fetchUserData();
   }, [router]);
+  
   
 
   useEffect(() => {
@@ -368,72 +386,69 @@ export default function HomePage() {
     try {
       const user = auth.currentUser;
       if (!user) {
-        console.error("No user logged in!");
+        console.error('No user logged in!');
         return null;
       }
   
-      // Obtener el número de proyectos del usuario
-      const projectCount = userData.projects ? userData.projects.length : 0;
-      const projectDisplayName = `Proyecto ${projectCount + 1}`;
+      const projectId = uuidv4(); // Generate a unique ID
   
-      // Generar un ID único para el proyecto
-      const projectId = uuidv4();
+      // Calculate the next project number
+      const existingProjects = userData.projects || [];
+      const projectNumbers = existingProjects
+        .map((project) => {
+          const match = project.name.match(/Proyecto (\d+)/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter((num) => num > 0);
   
-      // Crear el documento del proyecto, incluyendo 'conversation: []'
+      const nextProjectNumber = projectNumbers.length > 0 ? Math.max(...projectNumbers) + 1 : 1;
+      const projectDisplayName = `Proyecto ${nextProjectNumber}`; // e.g., "Proyecto 1"
+  
+      // Create the project in Firestore
       await setDoc(doc(db, 'Projects', projectId), {
         name: projectDisplayName,
         content: projectContent,
         userId: user.uid,
-        conversation: [], // Inicializar la conversación como un array vacío
+        conversation: [],
       });
   
-      // Actualizar la lista de proyectos del usuario
+      // Update the user's projects list
       const updatedProjects = userData.projects
         ? [{ projectId, name: projectDisplayName }, ...userData.projects]
         : [{ projectId, name: projectDisplayName }];
   
-      await updateDoc(doc(db, "Users", user.uid), {
+      await updateDoc(doc(db, 'Users', user.uid), {
         projects: updatedProjects,
       });
   
-      setUserData(prevData => ({
+      // Update local states
+      setUserData((prevData) => ({
         ...prevData,
         projects: updatedProjects,
       }));
-  
-      // Guardar los datos del proyecto en caché local
-      setLocalProjectData(prevData => ({
-        ...prevData,
-        [projectId]: {
-          name: projectDisplayName,
-          content: projectContent,
-          conversation: [], // Inicializar la conversación en localProjectData
-        },
-      }));
-  
-      // Establecer el nuevo proyecto como seleccionado
       setSelectedProject({ projectId, name: projectDisplayName });
   
-      // Retornar tanto el ID como el nombre del proyecto
       return { projectId, projectDisplayName };
     } catch (error) {
-      console.error('Error al crear el proyecto:', error);
-      alert('Error al crear el proyecto.');
-      return null;
+      console.error('Error creating new project:', error);
+      alert('Error al crear el proyecto: ' + error.message);
+      return null; // Return null to indicate failure
     }
   };
   
   
-
+  
   
   
 
   const clearProjectInfo = () => {
     // Generar nombre temporal para el proyecto
+
+    
     const projectCount = userData.projects ? userData.projects.length : 0;
     const projectDisplayName = `Proyecto ${projectCount + 1}`;
-  
-    setSelectedProject({ projectId: null, name: projectDisplayName });
+
+    setSelectedProject(null);
   
     // Restablecer la información del proyecto con las etiquetas obligatorias
     setProjectInfo(initialMandatoryTags.map(tag => ({ ...tag, value: '' })));
@@ -522,45 +537,62 @@ export default function HomePage() {
   
   
 
-  const handleSaveProject = async (projectContent) => {
+  const handleSaveProject = async (projectContent, projectIdParam) => {
     try {
       const user = auth.currentUser;
       if (!user) {
-        console.error("No user logged in!");
-        return;
+        console.error('No user logged in!');
+        return null;
       }
   
-      if (selectedProject && selectedProject.projectId) {
-        // Actualizar proyecto existente
-        const projectRef = doc(db, "Projects", selectedProject.projectId);
-        await updateDoc(projectRef, { content: projectContent });
+      let projectIdToUse = projectIdParam || (selectedProject && selectedProject.projectId);
   
-        // Actualizar localProjectData con todos los detalles
-        setLocalProjectData(prevData => ({
-          ...prevData,
-          [selectedProject.projectId]: {
-            name: selectedProject.name,
+      // Ensure projectIdToUse is a valid non-empty string
+      const isValidProjectId = typeof projectIdToUse === 'string' && projectIdToUse.trim() !== '';
+  
+      console.log('projectIdParam:', projectIdParam);
+      console.log('selectedProject:', selectedProject);
+      console.log('projectIdToUse:', projectIdToUse);
+      console.log('isValidProjectId:', isValidProjectId);
+  
+      if (isValidProjectId) {
+        // Use setDoc with merge: true to update the project
+        const projectRef = doc(db, 'Projects', projectIdToUse);
+        await setDoc(
+          projectRef,
+          {
+            name: selectedProject ? selectedProject.name : 'Unnamed Project',
             content: projectContent,
-            conversation: prevData[selectedProject.projectId]?.conversation || [],
+            userId: user.uid,
+          },
+          { merge: true }
+        );
+  
+        // Update localProjectData with all details
+        setLocalProjectData((prevData) => ({
+          ...prevData,
+          [projectIdToUse]: {
+            name: selectedProject ? selectedProject.name : 'Unnamed Project',
+            content: projectContent,
+            conversation: prevData[projectIdToUse]?.conversation || [],
           },
         }));
   
-        // Mostrar el modal de éxito
+        // Show success modal
         setSuccessMessage('Proyecto actualizado con éxito.');
         setShowSuccessModal(true);
       } else {
-        // Crear nuevo proyecto
+        // Create new project
         const newProject = await createNewProject(projectContent);
         if (newProject) {
           const { projectId, projectDisplayName } = newProject;
-          // Mostrar el modal de éxito
-          setSuccessMessage('Proyecto creado con éxito.');
-          setShowSuccessModal(true);
-          // Establecer el proyecto recién creado como seleccionado
+          projectIdToUse = projectId;
+  
+          // Set the newly created project as selected
           setSelectedProject({ projectId, name: projectDisplayName });
   
-          // Actualizar localProjectData para el nuevo proyecto
-          setLocalProjectData(prevData => ({
+          // Update localProjectData for the new project
+          setLocalProjectData((prevData) => ({
             ...prevData,
             [projectId]: {
               name: projectDisplayName,
@@ -568,16 +600,31 @@ export default function HomePage() {
               conversation: [],
             },
           }));
+  
+          // Show success modal
+          setSuccessMessage('Proyecto creado con éxito.');
+          setShowSuccessModal(true);
+        } else {
+          console.error('Error creating new project.');
+          alert('Error al crear el proyecto.');
+          return null;
         }
       }
   
       setIsProjectInfoUpdated(false);
   
+      // Return the projectIdToUse for further operations if needed
+      return projectIdToUse;
     } catch (error) {
       console.error('Error al guardar el proyecto:', error);
-      alert('Error al guardar el proyecto.');
+      alert('Error al guardar el proyecto: ' + error.message);
+      return null;
     }
   };
+  
+  
+  
+  
   
   
   
@@ -589,47 +636,50 @@ export default function HomePage() {
   };
   
 
+  // HomePage.js
   const handleProjectNameChange = async (newName) => {
+    if (!selectedProject || !selectedProject.projectId) {
+      console.error('No project is selected.');
+      return;
+    }
+
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        console.error("No user logged in!");
-        return;
-      }
-  
-      if (selectedProject) {
-        const projectId = selectedProject.projectId;
-  
-        // Actualiza el nombre del proyecto en Firestore
-        const projectRef = doc(db, "Projects", projectId);
-        await updateDoc(projectRef, { name: newName });
-  
-        // Actualiza la lista de proyectos del usuario en Firestore
-        const userRef = doc(db, "Users", user.uid);
-        const updatedProjects = userData.projects.map(project =>
-          project.projectId === projectId ? { ...project, name: newName } : project
-        );
-  
-        await updateDoc(userRef, {
-          projects: updatedProjects,
+      const projectId = selectedProject.projectId;
+
+      // Update the project name in Firestore
+      const projectRef = doc(db, 'Projects', projectId);
+      await updateDoc(projectRef, { name: newName });
+
+      // Update localProjectData
+      setLocalProjectData((prevData) => ({
+        ...prevData,
+        [projectId]: {
+          ...prevData[projectId],
+          name: newName,
+        },
+      }));
+
+      // Update selectedProject
+      setSelectedProject((prev) => ({
+        ...prev,
+        name: newName,
+      }));
+
+      // Update userData.projects
+      setUserData((prevData) => {
+        const updatedProjects = prevData.projects.map((project) => {
+          if (project.projectId === projectId) {
+            return { ...project, name: newName };
+          }
+          return project;
         });
-  
-        // Actualiza el estado local del nombre del proyecto
-        setLocalProjectData(prevData => ({
-          ...prevData,
-          [projectId]: prevData[projectId],
-        }));
-        setSelectedProject({ projectId, name: newName });
-        setUserData(prevData => ({
-          ...prevData,
-          projects: updatedProjects,
-        }));
-      }
+        return { ...prevData, projects: updatedProjects };
+      });
     } catch (error) {
-      console.error('Error al actualizar el nombre del proyecto:', error);
-      alert('Hubo un error al actualizar el nombre del proyecto.');
+      console.error('Error updating project name:', error);
     }
   };
+
   
 
   const handleManualEdit = () => {
@@ -729,38 +779,49 @@ const handleSendMessage = async (question) => {
 
 
 
-  const handleSaveConversation = async (question, answer) => {
-    if (!selectedProject || !selectedProject.projectId) {
-      console.error('No hay un proyecto seleccionado.');
+  const handleSaveConversation = async (question, answer, projectId) => {
+    const projectIdToUse = projectId || (selectedProject && selectedProject.projectId);
+    if (!projectIdToUse) {
+      console.error('No hay un projectId válido disponible.');
       return;
     }
   
     try {
-      const projectRef = doc(db, 'Projects', selectedProject.projectId);
+      const projectRef = doc(db, 'Projects', projectIdToUse);
   
-      // Obtener la conversación actual del proyecto desde localProjectData
-      let currentConversation = localProjectData[selectedProject.projectId]?.conversation || [];
+      // Get the current conversation from localProjectData
+      let currentConversation = localProjectData[projectIdToUse]?.conversation || [];
   
-      // Añadir la nueva conversación sin mutar el array original
+      // Add the new conversation without mutating the original array
       const newConversation = [...currentConversation, { question, answer }];
   
-      // Actualizar el campo 'conversation' en el documento del proyecto
-      await updateDoc(projectRef, {
-        conversation: newConversation,
-      });
+      // Update the 'conversation' field in the project's document
+      await setDoc(
+        projectRef,
+        {
+          conversation: newConversation,
+        },
+        { merge: true }
+      );
   
-      // Actualizar la conversación en localProjectData sin mutar el estado directamente
+      // Update the conversation in localProjectData
       setLocalProjectData((prevData) => ({
         ...prevData,
-        [selectedProject.projectId]: {
-          ...prevData[selectedProject.projectId],
+        [projectIdToUse]: {
+          ...prevData[projectIdToUse],
           conversation: newConversation,
         },
       }));
     } catch (error) {
       console.error('Error al guardar la conversación:', error);
+      alert('Error al guardar la conversación. Por favor, inténtalo de nuevo.');
     }
   };
+  
+  
+  
+  
+  
   
   
   
@@ -770,73 +831,75 @@ const handleSendMessage = async (question) => {
   
   const handleWarningConfirm = async () => {
     setShowWarningModal(false);
-
+  
     if (warningType === 'noDocuments') {
-        handleSendMessageResolveRef.current({ sent: false });
-        return;
+      handleSendMessageResolveRef.current({ sent: false });
+      return;
     }
-
+  
     if (warningType === 'noProjectInfo') {
-        let projectId;
-
-        if (!selectedProject || !selectedProject.projectId) {
-            try {
-                const user = auth.currentUser;
-                if (!user) {
-                    handleSendMessageResolveRef.current({ sent: true, responseText: 'Error: No hay usuario autenticado.' });
-                    return;
-                }
-
-                const projectCount = userData.projects ? userData.projects.length : 0;
-                const projectDisplayName = `Proyecto ${projectCount + 1}`;
-                projectId = uuidv4(); // Generar un nuevo `projectId`
-
-                // Crear el documento del proyecto en Firestore
-                await setDoc(doc(db, 'Projects', projectId), {
-                    name: projectDisplayName,
-                    content: projectInfo,
-                    userId: user.uid,
-                });
-
-                // Actualizar la lista de proyectos del usuario
-                const updatedProjects = userData.projects
-                    ? [{ projectId, name: projectDisplayName }, ...userData.projects]
-                    : [{ projectId, name: projectDisplayName }];
-
-                await updateDoc(doc(db, "Users", user.uid), {
-                    projects: updatedProjects,
-                });
-
-                // Actualizamos el estado del proyecto pero sin esperar a `setSelectedProject`
-                setUserData(prevData => ({
-                    ...prevData,
-                    projects: updatedProjects,
-                }));
-                setSelectedProject({ projectId, name: projectDisplayName });
-
-                // Guardar la información del proyecto antes de hacer la pregunta
-                await handleSaveProject(projectInfo);
-
-            } catch (error) {
-                console.error('Error al crear el proyecto:', error);
-                handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
-                return;
-            }
-        } else {
-            // Si ya hay un `selectedProject`, usamos el `projectId` existente
-            projectId = selectedProject.projectId;
+      let projectId;
+  
+      if (!selectedProject || !selectedProject.projectId) {
+        try {
+          const user = auth.currentUser;
+          if (!user) {
+            handleSendMessageResolveRef.current({ sent: true, responseText: 'Error: No hay usuario autenticado.' });
+            return;
+          }
+  
+          const projectCount = userData.projects ? userData.projects.length : 0;
+          const projectDisplayName = `Proyecto ${projectCount + 1}`;
+          projectId = uuidv4();
+  
+          // Crear el documento del proyecto en Firestore
+          await setDoc(doc(db, 'Projects', projectId), {
+            name: projectDisplayName,
+            content: projectInfo,
+            userId: user.uid,
+          });
+  
+          // Actualizar la lista de proyectos del usuario
+          const updatedProjects = userData.projects
+            ? [{ projectId, name: projectDisplayName }, ...userData.projects]
+            : [{ projectId, name: projectDisplayName }];
+  
+          await updateDoc(doc(db, "Users", user.uid), {
+            projects: updatedProjects,
+          });
+  
+          setUserData(prevData => ({
+            ...prevData,
+            projects: updatedProjects,
+          }));
+          setSelectedProject({ projectId, name: projectDisplayName });
+  
+          // Guardar la información del proyecto antes de hacer la pregunta
+          await handleSaveProject(projectInfo);
+  
+        } catch (error) {
+          console.error('Error al crear el proyecto:', error);
+          handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
+          return;
         }
-
-        // Asegurarnos de que tenemos el `projectId` antes de proceder
-        if (projectId) {
-          const response = await handleUserQuery(pendingQuestion, projectId);
-          setPendingQuestion('');
-          handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
-        } else {
-          handleSendMessageResolveRef.current({ sent: true, responseText: 'Error: No se ha establecido un projectId válido.' });
-        }
+      } else {
+        projectId = selectedProject.projectId;
+      }
+  
+      if (projectId) {
+        const response = await handleUserQuery(pendingQuestion, projectId);
+        setPendingQuestion('');
+  
+        // Guardar la conversación con el projectId correcto
+        await handleSaveConversation(pendingQuestion, response.responseText, projectId);
+  
+        handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
+      } else {
+        handleSendMessageResolveRef.current({ sent: true, responseText: 'Error: No se ha establecido un projectId válido.' });
+      }
     }
-};
+  };
+  
 
 
 
@@ -849,32 +912,34 @@ const handleSendMessage = async (question) => {
   const handleWarningSaveAndProceed = async () => {
     setShowWarningModal(false);
   
-    let projectIdToUse;
+    // Save the project and get the projectId
+    const projectIdToUse = await handleSaveProject(projectInfo);
   
-    // Si no hay un proyecto seleccionado, creamos uno nuevo
-    if (!selectedProject || !selectedProject.projectId) {
-      const newProject = await createNewProject(projectInfo);
-      if (newProject) {
-        const { projectId, projectDisplayName } = newProject;
-        setSelectedProject({ projectId, name: projectDisplayName });
-        projectIdToUse = projectId; // Almacenamos el projectId
-      } else {
-        handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
-        return;
-      }
-    } else {
-      projectIdToUse = selectedProject.projectId;
+    if (!projectIdToUse) {
+      handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al guardar el proyecto.' });
+      return;
     }
   
-    // Guardar la información del proyecto
-    await handleSaveProject(projectInfo);
-  
-    // Proceder a enviar la pregunta
+    // Proceed to send the question
     setIsProjectInfoUpdated(false);
-    const response = await handleUserQuery(pendingQuestion, projectIdToUse); // Pasamos el projectId explícitamente
+    const response = await handleUserQuery(pendingQuestion, projectIdToUse);
     setPendingQuestion('');
-    handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
+  
+    // Save the conversation with the correct projectId
+    await handleSaveConversation(pendingQuestion, response.responseText, projectIdToUse);
+  
+    // Resolve the promise
+    handleSendMessageResolveRef.current({
+      sent: true,
+      responseText: response.responseText,
+      error: response.error,
+    });
   };
+  
+  
+  
+  
+  
   
   
   
@@ -1085,7 +1150,7 @@ const handleSendMessage = async (question) => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden">
+    <div className="font-personalizada flex flex-col md:flex-row h-screen overflow-hidden">
       <div className="flex flex-col w-48 bg-[#F4EDE4]">
         <ProjectSelector
           projects={userData?.projects || []}
@@ -1094,13 +1159,12 @@ const handleSendMessage = async (question) => {
           selectedProject={selectedProject}
           onDeleteProject={handleDeleteProject} // Nueva prop
           isWaitingForResponse={isWaitingForResponse}
-
         />
       </div>
   
-      <div className="flex flex-1 flex-col p-6 bg-[#FFFFFF] overflow-y-auto">
-        {/* Contenedor para los botones y el UserMenu */}
-        <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-1 flex-col p-6 bg-[#FFFFFF] overflow-hidden">
+        {/* Barra superior con botones y menú */}
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           {/* Selector de Documentos */}
           <div className="flex">
             <DocumentSelector 
@@ -1135,38 +1199,42 @@ const handleSendMessage = async (question) => {
             </div>
           </div>
         </div>
-        <ProjectInfo 
-          isOpen={isProjectInfoOpen}
-          setIsOpen={setIsProjectInfoOpen}
-          info={projectInfo}
-          onUpdateInfo={handleUpdateProjectInfo}
-          onManualEdit={handleManualEdit}
-          onSave={handleSaveProject}
-          setIsProjectInfoUpdated={setIsProjectInfoUpdated}
-          onGenerateAutomaticTags={handleGenerateAutomaticTags}
-          isGenerating={isGeneratingTags}
-          projectName={selectedProject ? selectedProject.name : null} 
-          onProjectNameChange={handleProjectNameChange} 
-          resetTags={resetTagsTrigger}
-          isProjectSaved={selectedProject && selectedProject.projectId !== null} // Nueva prop
-        />
-
-        {/* Pasa chatRef al componente Chat */}
-        <Chat
-          onSendMessage={handleSendMessage}
-          onChatClick={handleChatClick}
-          projectInfo={projectInfo}
-          selectedDocuments={selectedDocuments}
-          onUpdateProjectInfo={handleUpdateProjectInfo}
-          onSaveConversation={handleSaveConversation}
-          initialMessages={initialMessages}
-          onFeedback={handleFeedback} // Pasamos la función al componente Chat
-          isWaitingForResponse={isWaitingForResponse}
-          onStartWaitingResponse={() => setIsWaitingForResponse(true)}
-          onEndWaitingResponse={() => setIsWaitingForResponse(false)}
-        />
-      
-
+  
+        {/* Envolver ProjectInfo en un contenedor con flex-shrink-0 */}
+        <div className="flex-shrink-0">
+          <ProjectInfo 
+            isOpen={isProjectInfoOpen}
+            setIsOpen={setIsProjectInfoOpen}
+            info={projectInfo}
+            onUpdateInfo={handleUpdateProjectInfo}
+            onManualEdit={handleManualEdit}
+            onSave={handleSaveProject}
+            setIsProjectInfoUpdated={setIsProjectInfoUpdated}
+            onGenerateAutomaticTags={handleGenerateAutomaticTags}
+            isGenerating={isGeneratingTags}
+            projectName={selectedProject ? selectedProject.name : null} 
+            onProjectNameChange={handleProjectNameChange} 
+            resetTags={resetTagsTrigger}
+            isProjectSaved={selectedProject && selectedProject.projectId !== null} // Nueva prop
+          />
+        </div>
+  
+        {/* Contenedor del Chat que ocupa el espacio restante y maneja su propio desbordamiento */}
+        <div className="flex flex-1 overflow-hidden">
+          <Chat
+            onSendMessage={handleSendMessage}
+            onChatClick={handleChatClick}
+            projectInfo={projectInfo}
+            selectedDocuments={selectedDocuments}
+            onUpdateProjectInfo={handleUpdateProjectInfo}
+            onSaveConversation={handleSaveConversation}
+            initialMessages={initialMessages}
+            onFeedback={handleFeedback} // Pasamos la función al componente Chat
+            isWaitingForResponse={isWaitingForResponse}
+            onStartWaitingResponse={() => setIsWaitingForResponse(true)}
+            onEndWaitingResponse={() => setIsWaitingForResponse(false)}
+          />
+        </div>
       </div>
   
       {/* Modales */}
@@ -1208,6 +1276,7 @@ const handleSendMessage = async (question) => {
       )}
     </div>
   );
+  
   
   
   
