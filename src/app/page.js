@@ -46,16 +46,17 @@ export default function Home() {
         
          
         <section id="home" className="hero bg-[#1e3047] text-white h-auto flex items-center justify-center pt-40 pb-20"> 
-          <div className="grid grid-cols-2 gap-8 max-w-7xl mx-auto px-10 items-center"> {/* px-10 mantiene el mismo relleno en ambos lados */}
-            <div className="text-left">
-              <h1 className=" text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura</h1>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 max-w-7xl mx-auto px-10 items-center">
+            {/* Contenido de texto */}
+            <div className="text-left lg:col-span-2">
+              <h1 className="text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura</h1>
               <p className="text-xl mb-6">Acelera tus proyectos con la potencia de la IA y ahorra tiempo</p>
               <button
-                      onClick={openSignUpPopup}
-                      className="bg-[#2563eb] text-white py-3 px-8 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
-                    >
-                      Prueba gratis la Beta
-                    </button>
+                onClick={openSignUpPopup}
+                className="bg-[#2563eb] text-white py-3 px-8 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
+              >
+                Prueba gratis la Beta
+              </button>
               <div className="mt-8 flex space-x-8 text-lg text-gray-300">
                 <div>
                   <strong className="text-white text-2xl">250+</strong>
@@ -67,18 +68,28 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-center">
-              <video 
-                src="https://www.w3schools.com/html/mov_bbb.mp4" 
-                className="w-full max-w-xl rounded-lg shadow-lg"  
-                autoPlay 
-                loop 
+            {/* Video */}
+            <div className="flex justify-center lg:col-span-3">
+              <video
+                className="w-full rounded-lg shadow-lg"
+                autoPlay
+                loop
                 muted
                 playsInline
-              />
+                poster="https://dy9nxqw867erp.cloudfront.net/v1-poster.webp"
+              >
+                <source
+                  src="https://dy9nxqw867erp.cloudfront.net/unido.mp4"
+                  type="video/mp4"
+                />
+                Tu navegador no soporta el elemento de video.
+              </video>
             </div>
           </div>
         </section>
+
+
+
           
 
         {/* Scrolling Images Section */}
@@ -90,26 +101,30 @@ export default function Home() {
               Simplifica el cumplimiento normativo en tus proyectos
             </h1>
           </div>
+
+          {/* Primera Sección */}
           <section className="bg-[#1e3047] text-white py-20">
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-6">
+            <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-4 px-6">
               {/* Video */}
-              <div className="space-y-6">
+              <div className="flex justify-center">
                 <video
-                  className="w-full rounded-md shadow-lg"
+                  className="w-full max-w-xl rounded-md shadow-lg"
                   autoPlay
                   loop
                   muted
+                  playsInline
+                  poster="https://dy9nxqw867erp.cloudfront.net/v1-poster.webp"
                 >
                   <source
-                    src="https://www.w3schools.com/html/mov_bbb.mp4"
+                    src="https://dy9nxqw867erp.cloudfront.net/v1.mp4"
                     type="video/mp4"
                   />
-                  Your browser does not support the video tag.
+                  Tu navegador no soporta el elemento de video.
                 </video>
               </div>
 
               {/* Explicación del video */}
-              <div className="max-w-md">
+              <div className="px-6">
                 <span className="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full mb-4">
                   ✔ Respuestas Instantáneas
                 </span>
@@ -123,11 +138,11 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Segunda Sección: Video a la derecha, Texto a la izquierda */}
+          {/* Segunda Sección */}
           <section className="bg-[#1e3047] text-white py-20">
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-6">
+            <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-4 px-6">
               {/* Explicación del video */}
-              <div className="max-w-md">
+              <div className="px-6">
                 <span className="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full mb-4">
                   ✔ Respuestas Precisas
                 </span>
@@ -140,18 +155,20 @@ export default function Home() {
               </div>
 
               {/* Video */}
-              <div className="space-y-6">
+              <div className="flex justify-center">
                 <video
-                  className="w-full rounded-md shadow-lg"
+                  className="w-full max-w-xl rounded-md shadow-lg"
                   autoPlay
                   loop
                   muted
+                  playsInline
+                  poster="https://dy9nxqw867erp.cloudfront.net/v2-poster.webp"
                 >
                   <source
-                    src="https://www.w3schools.com/html/mov_bbb.mp4"
+                    src="https://dy9nxqw867erp.cloudfront.net/v2.mp4"
                     type="video/mp4"
                   />
-                  Your browser does not support the video tag.
+                  Tu navegador no soporta el elemento de video.
                 </video>
               </div>
             </div>
@@ -159,25 +176,27 @@ export default function Home() {
 
           {/* Tercera Sección */}
           <section className="bg-[#1e3047] text-white py-20">
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-6">
+            <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-4 px-6">
               {/* Video */}
-              <div className="space-y-6">
+              <div className="flex justify-center">
                 <video
-                  className="w-full rounded-md shadow-lg"
+                  className="w-full max-w-xl rounded-md shadow-lg"
                   autoPlay
                   loop
                   muted
+                  playsInline
+                  poster="https://dy9nxqw867erp.cloudfront.net/v3-poster.webp"
                 >
                   <source
-                    src="https://www.w3schools.com/html/mov_bbb.mp4"
+                    src="https://dy9nxqw867erp.cloudfront.net/V3.mp4"
                     type="video/mp4"
                   />
-                  Your browser does not support the video tag.
+                  Tu navegador no soporta el elemento de video.
                 </video>
               </div>
 
               {/* Explicación del video */}
-              <div className="max-w-md">
+              <div className="px-6">
                 <span className="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full mb-4">
                   ✔ Explicaciones detalladas
                 </span>
@@ -191,6 +210,14 @@ export default function Home() {
             </div>
           </section>
         </section>
+
+
+
+
+
+
+
+
 
 
         {/* Information Section */}
@@ -282,7 +309,7 @@ export default function Home() {
           >
           <h2 className="text-4xl font-bold mb-8 text-white">Cómo se Usa</h2>
           <video
-            src="https://your-video-url.com"
+            src="https://dy9nxqw867erp.cloudfront.net/explanation.mp4"
             controls
             className="w-full max-w-3xl h-auto mx-auto mb-8 shadow-lg rounded-lg"
           ></video>
