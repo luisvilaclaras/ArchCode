@@ -10,7 +10,15 @@ module.exports = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        lightBlue: '#add8e6', // Reemplaza con el código de color que prefieras
+        darkBlue: '#00008b'
       },
+      fontFamily: {
+        personalizada: ['MiFuentePersonalizada', 'sans-serif'], // Define el nombre de la fuente
+      },
+      screens: {
+        'custom': '1480px',
+      }
     },
   },
   plugins: [],

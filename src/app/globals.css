@@ -19,3 +19,73 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@font-face {
+  font-family: 'MiFuentePersonalizada';
+  src: url('/fonts/Inter_18pt-Regular.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'MiFuentePersonalizada';
+  src: url('/fonts/Inter_18pt-Bold.ttf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* styles/globals.css o tu archivo CSS global */
+
+@keyframes scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-scroll {
+  display: flex;
+  animation: scroll 30s linear infinite;
+}
+
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.katex-display > .katex {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.katex {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.katex-display .katex {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.katex .mord {
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+
