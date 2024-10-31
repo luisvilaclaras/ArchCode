@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import AlertModal from '@/components/Modals/AlertModal'; // Importamos el AlertModal
+import { FaChevronDown } from 'react-icons/fa';
+import AlertModal from '@/components/Modals/AlertModal';
 
 export default function DocumentSelector({ availablePDFs, selectedRegion, onRegionSelect, onSelect }) {
   const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
-  const [showAlertModal, setShowAlertModal] = useState(false); // Estado para controlar la visibilidad del AlertModal
-  const [alertMessage, setAlertMessage] = useState(''); // Estado para almacenar el mensaje del AlertModal
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
   const dropdownRef = useRef(null);
   const regionDropdownRef = useRef(null);
 
   const handleRegionChange = (region) => {
     onRegionSelect(region);
     setSelectedDocuments([]); // Reinicia los documentos seleccionados al cambiar la región
-    onSelect([]); // Notifica al padre que la selección ha cambiado
+    // No llamamos a onSelect aquí
     setIsRegionDropdownOpen(false); // Cerrar el dropdown de regiones
   };
 
@@ -26,8 +26,6 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
       if (prevSelected.includes(doc)) {
         // Si el documento ya está seleccionado, lo deseleccionamos
         updatedSelection = prevSelected.filter((d) => d !== doc);
-        onSelect(updatedSelection);
-        return updatedSelection;
       } else {
         if (prevSelected.length >= 5) {
           // Si ya hay 5 documentos seleccionados, mostramos el AlertModal
@@ -37,12 +35,16 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
         } else {
           // Si no está seleccionado y no se ha alcanzado el límite, lo añadimos
           updatedSelection = [...prevSelected, doc];
-          onSelect(updatedSelection);
-          return updatedSelection;
         }
       }
+      return updatedSelection;
     });
   };
+
+  // useEffect para notificar al componente padre cuando cambia la selección
+  useEffect(() => {
+    onSelect(selectedDocuments);
+  }, [selectedDocuments, onSelect]);
 
   const regions = ['Normativas nacionales', ...Object.keys(availablePDFs).filter(r => r !== 'Normativas nacionales')];
 
@@ -54,7 +56,9 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
   );
 
   const handleDropdownToggle = () => {
-    setIsDropdownOpen(!isDropdownOpen);
+    if (selectedRegion && selectedRegion.trim() !== '') { // Solo permitir abrir si hay región seleccionada
+      setIsDropdownOpen(!isDropdownOpen);
+    }
   };
 
   const handleRegionDropdownToggle = () => {
@@ -130,7 +134,8 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
         <button
           onClick={handleDropdownToggle}
           className={`${commonSelectorClasses} flex justify-between items-center pr-4 custom:pr-10 w-75 custom:w-96`}
-          disabled={!selectedRegion}
+          disabled={!selectedRegion || selectedRegion.trim() === ''}
+          title={!selectedRegion || selectedRegion.trim() === '' ? 'Selecciona una región primero' : 'Selecciona documentos'}
         >
           <div className="flex items-center">
             <span className="truncate">
@@ -142,10 +147,7 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
           <FaChevronDown className="text-gray-600" />
         </button>
 
-
-
-
-        {isDropdownOpen && (
+        {isDropdownOpen && selectedRegion && selectedRegion.trim() !== '' && (
           <div className="absolute mt-1 w-full bg-gray-200 text-gray-700 rounded-md shadow-lg border border-gray-400 z-10 max-h-96 overflow-auto">
             {uniqueDocuments.map((doc, index) => {
               // Determinar la bandera a mostrar
@@ -171,7 +173,7 @@ export default function DocumentSelector({ availablePDFs, selectedRegion, onRegi
                     type="checkbox"
                     checked={selectedDocuments.includes(doc)}
                     onChange={() => handleDocumentToggle(doc)}
-                    onClick={(e) => e.stopPropagation()} // Añadido para evitar que el clic cierre el dropdown
+                    onClick={(e) => e.stopPropagation()} // Evitar que el clic cierre el dropdown
                     className="form-checkbox h-5 w-5 text-blue-600"
                   />
 

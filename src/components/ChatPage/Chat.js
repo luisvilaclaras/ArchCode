@@ -9,24 +9,21 @@ export default function Chat({
   initialMessages,
   onSaveConversation,
   onFeedback,
-  isWaitingForResponse, // Recibimos isWaitingForResponse como prop
-  onStartWaitingResponse, // Recibimos onStartWaitingResponse como prop
-  onEndWaitingResponse, // Recibimos onEndWaitingResponse como prop
+  isWaitingForResponse,
+  onStartWaitingResponse,
+  onEndWaitingResponse,
 }) {
-  // Manejamos el estado de mensajes internamente
   const [messages, setMessages] = useState(() => initialMessages || []);
-
   const [input, setInput] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
-  const messagesContainerRef = useRef(null); // Nueva referencia al contenedor de mensajes
+  const messagesContainerRef = useRef(null);
+  const assistantMessageIndexRef = useRef(null); // Referencia al índice del mensaje del asistente
 
-  // Actualizar los mensajes cuando initialMessages cambie
   useEffect(() => {
     setMessages(initialMessages || []);
   }, [initialMessages]);
 
-  // Función para desplazarse al final
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -36,7 +33,6 @@ export default function Chat({
     }
   };
 
-  // Desplazarse al final cuando los mensajes cambien
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -44,84 +40,77 @@ export default function Chat({
   const handleSendMessage = async () => {
     if (input.trim()) {
       const question = input;
-      let assistantMessageIndex;
-
-      // Agregamos ambos mensajes en una sola llamada a setMessages
-      setMessages((prevMessages) => {
-        const newMessages = [
-          ...prevMessages,
-          { sender: 'user', text: question },
-          { sender: 'gpt', text: loadingMessage, isComplete: false },
-        ];
-        assistantMessageIndex = newMessages.length - 1; // Índice del mensaje del asistente
-        return newMessages;
-      });
-
-      // Limpiar el input
-      setInput('');
 
       // Indicar que estamos esperando una respuesta
       if (onStartWaitingResponse) {
         onStartWaitingResponse();
       }
 
+      // Agregar el mensaje del usuario y el mensaje de 'Pensando...' al chat
+      let assistantMessageIndex;
+      setMessages((prevMessages) => {
+        const newMessages = [
+          ...prevMessages,
+          { sender: 'user', text: question },
+          { sender: 'gpt', text: loadingMessage, isComplete: false },
+        ];
+        assistantMessageIndex = newMessages.length - 1;
+        assistantMessageIndexRef.current = assistantMessageIndex; // Guardar el índice en la referencia
+        return newMessages;
+      });
+
+      // **Eliminar la limpieza del input aquí**
+      // setInput('');
+
       try {
         const response = await onSendMessage(question);
 
         if (response && response.sent) {
-          // Reemplazar el mensaje de 'Pensando respuesta...'
-          setMessages((prevMessages) => {
-            const newMessages = [...prevMessages];
-            const lastAssistantMessageIndex = assistantMessageIndex; // Usamos el índice correcto
-            if (response.responseText && !response.error) {
-              newMessages[lastAssistantMessageIndex] = {
-                sender: 'gpt',
-                text: '',
-                isComplete: false,
-              };
-              // Iniciar efecto de tipeo
-              typeMessage(response.responseText, lastAssistantMessageIndex, question);
-            } else {
-              // Mostrar mensaje de error si no hay respuesta válida
-              newMessages[lastAssistantMessageIndex] = {
+          // Reemplazar el placeholder con la respuesta real
+          if (response.responseText && !response.error) {
+            typeMessage(response.responseText, assistantMessageIndex, question);
+          } else {
+            // Manejar error: actualizar el mensaje del asistente con el error
+            setMessages((prevMessages) => {
+              const newMessages = [...prevMessages];
+              newMessages[assistantMessageIndex] = {
                 sender: 'gpt',
                 text: response.responseText || 'No se recibió una respuesta válida.',
-                isComplete: true, // Marcamos como completa
+                isComplete: true,
               };
-              // Indicar que ya no estamos esperando una respuesta
-              if (onEndWaitingResponse) {
-                onEndWaitingResponse();
-              }
+              return newMessages;
+            });
+            if (onEndWaitingResponse) {
+              onEndWaitingResponse();
             }
+
+            // **Limpiar el input después de manejar el error**
+            setInput('');
+          }
+        } else {
+          // Si el mensaje no se envió, eliminar el mensaje de 'Pensando...'
+          setMessages((prevMessages) => {
+            const newMessages = [...prevMessages];
+            newMessages.splice(assistantMessageIndex, 1); // Eliminar el último mensaje
             return newMessages;
           });
-        } else {
-          // Si no se envió el mensaje, eliminar los mensajes agregados
-          setMessages((prevMessages) => prevMessages.slice(0, -2));
-          // Indicar que ya no estamos esperando una respuesta
           if (onEndWaitingResponse) {
             onEndWaitingResponse();
           }
+          // **Mantener el input con el mensaje para que el usuario pueda corregirlo**
         }
       } catch (error) {
         console.error('Error al enviar el mensaje:', error);
-        // Mostrar mensaje de error
+        // Eliminar el mensaje de 'Pensando...'
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
-          const lastAssistantMessageIndex = assistantMessageIndex; // Usamos el índice correcto
-          newMessages[lastAssistantMessageIndex] = {
-            sender: 'gpt',
-            text: 'Error al obtener la respuesta.',
-            isComplete: true, // Marcamos como completa
-          };
+          newMessages.splice(assistantMessageIndex, 1);
           return newMessages;
         });
-        // Indicar que ya no estamos esperando una respuesta
         if (onEndWaitingResponse) {
           onEndWaitingResponse();
         }
-      } finally {
-        // No llamamos a onEndWaitingResponse aquí, lo haremos después
+        // **Mantener el input con el mensaje para que el usuario pueda corregirlo**
       }
     }
   };
@@ -135,7 +124,7 @@ export default function Chat({
   const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
-    const typingSpeed = 1;
+    const typingSpeed = 1; // Velocidad de tipeo en milisegundos
 
     const interval = setInterval(() => {
       currentText += fullText.charAt(i);
@@ -150,14 +139,14 @@ export default function Chat({
         return newMessages;
       });
 
-      // Desplazar al final después de actualizar el mensaje, asegurando que el DOM se haya actualizado
+      // Scroll al final después de actualizar el mensaje
       setTimeout(() => {
         scrollToBottom();
       }, 0);
 
       if (i >= fullText.length) {
         clearInterval(interval);
-        // Una vez que el mensaje está completo, marcamos 'isComplete' como true
+        // Marcar el mensaje como completo
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
           newMessages[index] = {
@@ -167,7 +156,7 @@ export default function Chat({
           return newMessages;
         });
 
-        // Llamar a onSaveConversation
+        // Guardar la conversación
         if (onSaveConversation) {
           onSaveConversation(question, fullText);
         }
@@ -176,6 +165,9 @@ export default function Chat({
         if (onEndWaitingResponse) {
           onEndWaitingResponse();
         }
+
+        // **Limpiar el input después de completar la respuesta**
+        setInput('');
       }
     }, typingSpeed);
   };
@@ -194,12 +186,12 @@ export default function Chat({
     const textarea = inputRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`; // Limitar altura máxima a 200px
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
   };
 
   useEffect(() => {
-    adjustTextareaHeight(); // Ajustar al inicio y cuando cambia el valor de input
+    adjustTextareaHeight();
   }, [input]);
 
   // Animación de los puntos en "Pensando respuesta..."
@@ -209,7 +201,26 @@ export default function Chat({
       let count = 0;
       interval = setInterval(() => {
         const dots = '.'.repeat((count % 3) + 1);
-        setLoadingMessage(`Pensando respuesta${dots}`);
+        const newLoadingMessage = `Pensando respuesta${dots}`;
+        setLoadingMessage(newLoadingMessage);
+
+        // Actualizar el mensaje del asistente con la nueva animación
+        setMessages((prevMessages) => {
+          const newMessages = [...prevMessages];
+          const assistantMessageIndex = assistantMessageIndexRef.current;
+          if (
+            assistantMessageIndex !== null &&
+            newMessages[assistantMessageIndex]?.sender === 'gpt' &&
+            !newMessages[assistantMessageIndex]?.isComplete
+          ) {
+            newMessages[assistantMessageIndex] = {
+              ...newMessages[assistantMessageIndex],
+              text: newLoadingMessage,
+            };
+          }
+          return newMessages;
+        });
+
         count++;
       }, 800);
     } else {
@@ -218,24 +229,7 @@ export default function Chat({
     return () => clearInterval(interval);
   }, [isWaitingForResponse]);
 
-  // Actualizar el mensaje del asistente con la animación
-  useEffect(() => {
-    if (isWaitingForResponse) {
-      setMessages((prevMessages) => {
-        const newMessages = [...prevMessages];
-        const lastAssistantMessageIndex = newMessages.length - 1;
-        if (newMessages[lastAssistantMessageIndex]?.sender === 'gpt') {
-          newMessages[lastAssistantMessageIndex] = {
-            ...newMessages[lastAssistantMessageIndex],
-            text: loadingMessage,
-          };
-        }
-        return newMessages;
-      });
-    }
-  }, [loadingMessage]);
-
-  // Manejador para clic en el componente Chat
+  // Handler para clic en el componente Chat
   const handleChatClick = () => {
     if (onChatClick) {
       onChatClick();
@@ -271,7 +265,6 @@ export default function Chat({
             rows="1"
             className="w-full py-2 pl-4 pr-10 rounded-lg bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
             placeholder="Escribe un mensaje"
-            // Eliminamos disabled={isWaitingForResponse}
             style={{ maxHeight: '200px' }}
           />
           <button
