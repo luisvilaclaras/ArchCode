@@ -60,23 +60,16 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 max-w-7xl mx-auto px-10 items-center">
             {/* Contenido de texto */}
             <div className="text-left lg:col-span-2">
-              <h1 className="text-4xl font-bold mb-4 leading-snug">La Herramienta Definitiva para las Normativas de Arquitectura</h1>
-              <p className="text-xl mb-6">Acelera tus proyectos con la potencia de la IA y ahorra tiempo</p>
+              <h1 className="text-4xl font-bold mb-4 leading-snug">La IA definitiva para arquitectos</h1>
+              <p className="text-xl mb-6">Acelera tus proyectos con la potencia de la IA para arquitectos y gana tiempo</p>
               <button
                 onClick={openSignUpPopup}
                 className="bg-[#2563eb] text-white py-3 px-8 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
               >
-                Prueba gratis la Beta
+                Prueba ahora la Beta
               </button>
               <div className="mt-8 flex space-x-8 text-lg text-gray-300">
-                <div>
-                  <strong className="text-white text-2xl">250+</strong>
-                  <p className="text-gray-400 text-sm">Usuarios Activos</p>
-                </div>
-                <div>
-                  <strong className="text-white text-2xl">10000+</strong>
-                  <p className="text-gray-400 text-sm">Preguntas solucionadas</p>
-                </div>
+            
               </div>
             </div>
             {/* Video */}
@@ -215,7 +208,7 @@ export default function Home() {
                   Entiende y comprende la normativa
                 </h2>
                 <p className="mb-4 text-lg leading-relaxed">
-                  Más que solo respuestas, nuestra IA te ayuda a interpretar y aplicar las normativas arquitectónicas con profundidad. Aprende a desglosar y entender cada código, para que puedas implementarlo fácilmente en tus proyectos, asegurando el cumplimiento de cada detalle técnico.
+                   Nuestra IA en arquitectura te ayuda a interpretar y aplicar las normativas arquitectónicas con profundidad. Aprende a desglosar y entender cada código, para que puedas implementarlo fácilmente en tus proyectos, asegurando el cumplimiento de cada detalle técnico.
                 </p>
               </div>
             </div>
@@ -234,7 +227,7 @@ export default function Home() {
         {/* Information Section */}
         <section id="ventajas" className="font-personalizada bg-[#1e3047] py-20  text-center">
           <h2 className="text-3xl font-bold mb-6 text-white pt-20">
-            Agiliza tu Proceso de Investigación
+            Agiliza tu proceso de investigación
           </h2>
           <p className="text-base text-gray-300 max-w-2xl mx-auto mb-8">
             Transforma la complejidad normativa en respuestas claras y
@@ -245,7 +238,7 @@ export default function Home() {
           <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
             {/* Imagen encima del título */}
             <img src="images/investigar.webp" alt="Icon 1" className="mx-auto mb-3 w-12 h-12" />
-            <h3 className="text-base font-semibold text-white">Investiga Más Rápido</h3>
+            <h3 className="text-base font-semibold text-white">Investiga más rápido</h3>
             <p className="text-sm text-gray-300 mt-2">Analiza rápidamente una gran cantidad de códigos técnicos, permitiendo buscar y encontrar fácilmente entre normativas específicas.</p>
           </div>
           <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
@@ -289,7 +282,7 @@ export default function Home() {
             onClick={openSignUpPopup}
             className="bg-white text-blue-500 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition duration-300 ease-in-out"
           >
-            Pruébalo Gratis
+            Pruéba ahora la Beta
           </button>
         </section>
 
@@ -318,7 +311,7 @@ export default function Home() {
           id="como-se-usa"
           className="font-personalizada bg-[#1e3047] py-20 text-center pt-30 scroll-mt-20"
           >
-          <h2 className="text-4xl font-bold mb-8 text-white">Cómo se Usa</h2>
+          <h2 className="text-4xl font-bold mb-8 text-white">Descubre cómo funciona</h2>
           <video
             src="https://dy9nxqw867erp.cloudfront.net/explanation.mp4"
             controls
@@ -351,7 +344,7 @@ export default function Home() {
             onClick={openSignUpPopup}
             className="bg-white text-blue-500 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition duration-300 ease-in-out"
           >
-            Pruébalo Gratis
+            Pruéba ahora la Beta
           </button>
         </section>
         <Footer>

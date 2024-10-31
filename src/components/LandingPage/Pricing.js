@@ -3,10 +3,10 @@ import React from 'react';
 export default function Pricing({ openSignUpPopup }) {
   return (
     <section className="font-personalizada bg-[#1e3047] text-white py-16 text-center pt-28">
-      <h2 className="text-4xl font-bold mb-6">Beta</h2>
+      <h2 className="text-4xl font-bold mb-6">Periodo de Beta</h2>
       <div className="bg-[#2563eb] text-white p-8 rounded-lg shadow-lg inline-block max-w-md mx-auto">
         <p className="text-3xl font-bold mb-4">Acceso ilimitado durante la beta</p>
-        <p className="text-5xl font-bold mb-6">Pruébalo Gratis</p>
+        <p className="text-5xl font-bold mb-6">Pruébalo Ahora</p>
         <ul className="text-left mb-6 space-y-2">
           <li className="flex items-center space-x-2">
             <span>✔️</span>
@@ -35,7 +35,7 @@ export default function Pricing({ openSignUpPopup }) {
         </button>
         {/* Eliminamos los métodos de pago */}
         {/* Texto final */}
-        <p className="text-sm mt-4">Periodo de Beta</p>
+        <p className="text-sm mt-4">Versión Beta abierta al público</p>
       </div>
     </section>
   );

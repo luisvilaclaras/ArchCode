@@ -63,7 +63,7 @@ export default function Footer() {
               className="hover:text-white transition cursor-pointer"
               onClick={() => handleScrollToSection('como-se-usa')}
             >
-              Cómo se Usa
+              Descubre como funciona
             </li>
             <li
               className="hover:text-white transition cursor-pointer"

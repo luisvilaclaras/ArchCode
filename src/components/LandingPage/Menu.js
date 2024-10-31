@@ -74,7 +74,7 @@ export default function Menu() {
               className="hover:text-lightBlue cursor-pointer"
               onClick={() => handleScrollToSection('como-se-usa')}
             >
-              Cómo se usa
+              Descubre como funciona
             </li>
             <li
               className="hover:text-lightBlue cursor-pointer"

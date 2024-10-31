@@ -217,7 +217,7 @@ export default function SignUpPopup({ closePopup }) {
               &times;
             </button>
             <h2 className="text-2xl font-semibold mb-4">¡Cuenta creada!</h2>
-            <p>Verifica tu correo electrónico para comenzar a usar tu nueva cuenta.</p>
+            <p>Verifica tu correo electrónico para comenzar a usar tu cuenta en ArchCode</p>
             <button
               className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-4 rounded-full w-full mt-6 transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
               onClick={handleSuccessPopupClose}
