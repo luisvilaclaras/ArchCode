@@ -303,7 +303,8 @@ export default function Home() {
 
         {/* Pricing Section */}
         <section id="precios">
-          <Pricing />
+          <Pricing openSignUpPopup={openSignUpPopup} />
+
         </section>
 
         {/* 3 Simple Steps Section */}

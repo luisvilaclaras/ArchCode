@@ -170,7 +170,7 @@ async function getLastAssistantMessage(threadId, runId) {
 // Función principal handleUserQuery con middleware CORS aplicado correctamente
 exports.handleUserQuery = onRequest(
     async (req, res) => {
-        const allowedOrigins = ['https://archcode.io', 'http://localhost:3000'];
+        const allowedOrigins = ['https://archcode.io', 'http://localhost:3000', 'https://archcode-5ad81--archcode-5-nov-trcybw8t.web.app'];
         const origin = req.headers.origin;
         if (allowedOrigins.includes(origin)) {
             res.set('Access-Control-Allow-Origin', origin);
@@ -265,7 +265,7 @@ exports.handleUserQuery = onRequest(
 // Nueva función generateAdditionalTags
 exports.generateAdditionalTags = onRequest(
     async (req, res) => {
-        const allowedOrigins = ['https://archcode.io', 'http://localhost:3000'];
+        const allowedOrigins = ['https://archcode.io', 'http://localhost:3000', 'https://archcode-5ad81--archcode-5-nov-trcybw8t.web.app'];
         const origin = req.headers.origin;
         if (allowedOrigins.includes(origin)) {
             res.set('Access-Control-Allow-Origin', origin);

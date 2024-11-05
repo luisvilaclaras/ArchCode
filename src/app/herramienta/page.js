@@ -709,7 +709,7 @@ export default function HomePage() {
     if (selectedDocuments.length === 0) {
       return new Promise((resolve) => {
         handleSendMessageResolveRef.current = resolve;
-        setWarningMessage('¿Estás seguro que no quieres especificar el documento más importante/documentos más importantes para la pregunta? Si no lo haces, nuestro asistente escogerá los documentos relevantes por ti!');
+        setWarningMessage('¿Estás seguro de que no quieres especificar el documento más importante/documentos más importantes para la pregunta? Si no lo haces, nuestro asistente escogerá los documentos relevantes por ti!');
         setWarningType('autoSelectDocuments');
         setPendingQuestion(question); // Guardar la pregunta pendiente
         setShowWarningModal(true);
@@ -863,43 +863,47 @@ export default function HomePage() {
   // Manejador para proceder con la selección automática de documentos
   const handleWarningProceedWithAutoSelection = async () => {
     setShowWarningModal(false);
-
+  
+    // Si no hay un proyecto seleccionado, guardar el proyecto
+    let projectIdToUse = selectedProject ? selectedProject.projectId : null;
+    if (!projectIdToUse) {
+      // Guardar el proyecto y obtener el projectId
+      projectIdToUse = await handleSaveProject(projectInfo);
+      if (!projectIdToUse) {
+        console.error("Error al guardar el proyecto.");
+        handleSendMessageResolveRef.current({ error: true, responseText: 'Error al guardar el proyecto.' });
+        return;
+      }
+    }
+  
     // Obtener todos los documentos elegibles basados en la región seleccionada
     const regionalDocs = availablePDFs[selectedRegion] || [];
     const nationalDocs = availablePDFs['Normativas nacionales'] || [];
     const eligibleDocuments = [...regionalDocs, ...nationalDocs];
-
+  
     // Construir la pregunta sin especificar documentos
     try {
-      const projectIdToUse = selectedProject ? selectedProject.projectId : null;
-
-      if (!projectIdToUse) {
-        console.error("Proyecto no seleccionado.");
-        handleSendMessageResolveRef.current({ error: true, responseText: 'Proyecto no seleccionado.' });
-        return;
-      }
-
       const respuesta = await handleUserQuery(pendingQuestion, projectIdToUse, eligibleDocuments);
-
+  
       if (!respuesta.error) {
         // Guardar la conversación en la base de datos
         await handleSaveConversation(pendingQuestion, respuesta.responseText, projectIdToUse);
       }
-
+  
       handleSendMessageResolveRef.current({
         sent: !respuesta.error,
         responseText: respuesta.responseText,
         error: respuesta.error,
       });
       handleSendMessageResolveRef.current = null; // Restablecer después de usar
-
+  
     } catch (error) {
       console.error('Error al enviar la consulta con selección automática:', error);
       handleSendMessageResolveRef.current({ error: true, responseText: 'Error al procesar la solicitud.' });
       handleSendMessageResolveRef.current = null; // Restablecer después de usar
     }
   };
-
+  
   // Manejador para cancelar la acción
   const handleWarningCancel = () => {
     setShowWarningModal(false);
