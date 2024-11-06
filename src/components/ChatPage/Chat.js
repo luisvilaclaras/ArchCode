@@ -18,7 +18,7 @@ export default function Chat({
   const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const assistantMessageIndexRef = useRef(null); // Referencia al índice del mensaje del asistente
+  const assistantMessageIndexRef = useRef(null);
 
   useEffect(() => {
     setMessages(initialMessages || []);
@@ -41,12 +41,10 @@ export default function Chat({
     if (input.trim()) {
       const question = input;
 
-      // Indicar que estamos esperando una respuesta
       if (onStartWaitingResponse) {
         onStartWaitingResponse();
       }
 
-      // Agregar el mensaje del usuario y el mensaje de 'Pensando...' al chat
       let assistantMessageIndex;
       setMessages((prevMessages) => {
         const newMessages = [
@@ -55,22 +53,17 @@ export default function Chat({
           { sender: 'gpt', text: loadingMessage, isComplete: false },
         ];
         assistantMessageIndex = newMessages.length - 1;
-        assistantMessageIndexRef.current = assistantMessageIndex; // Guardar el índice en la referencia
+        assistantMessageIndexRef.current = assistantMessageIndex;
         return newMessages;
       });
-
-      // **Eliminar la limpieza del input aquí**
-      // setInput('');
 
       try {
         const response = await onSendMessage(question);
 
         if (response && response.sent) {
-          // Reemplazar el placeholder con la respuesta real
           if (response.responseText && !response.error) {
             typeMessage(response.responseText, assistantMessageIndex, question);
           } else {
-            // Manejar error: actualizar el mensaje del asistente con el error
             setMessages((prevMessages) => {
               const newMessages = [...prevMessages];
               newMessages[assistantMessageIndex] = {
@@ -83,25 +76,20 @@ export default function Chat({
             if (onEndWaitingResponse) {
               onEndWaitingResponse();
             }
-
-            // **Limpiar el input después de manejar el error**
             setInput('');
           }
         } else {
-          // Si el mensaje no se envió, eliminar el mensaje de 'Pensando...'
           setMessages((prevMessages) => {
             const newMessages = [...prevMessages];
-            newMessages.splice(assistantMessageIndex, 1); // Eliminar el último mensaje
+            newMessages.splice(assistantMessageIndex, 1);
             return newMessages;
           });
           if (onEndWaitingResponse) {
             onEndWaitingResponse();
           }
-          // **Mantener el input con el mensaje para que el usuario pueda corregirlo**
         }
       } catch (error) {
         console.error('Error al enviar el mensaje:', error);
-        // Eliminar el mensaje de 'Pensando...'
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
           newMessages.splice(assistantMessageIndex, 1);
@@ -110,7 +98,6 @@ export default function Chat({
         if (onEndWaitingResponse) {
           onEndWaitingResponse();
         }
-        // **Mantener el input con el mensaje para que el usuario pueda corregirlo**
       }
     }
   };
@@ -124,7 +111,7 @@ export default function Chat({
   const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
-    const typingSpeed = 1; // Velocidad de tipeo en milisegundos
+    const typingSpeed = 1;
 
     const interval = setInterval(() => {
       currentText += fullText.charAt(i);
@@ -139,14 +126,12 @@ export default function Chat({
         return newMessages;
       });
 
-      // Scroll al final después de actualizar el mensaje
       setTimeout(() => {
         scrollToBottom();
       }, 0);
 
       if (i >= fullText.length) {
         clearInterval(interval);
-        // Marcar el mensaje como completo
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
           newMessages[index] = {
@@ -156,17 +141,14 @@ export default function Chat({
           return newMessages;
         });
 
-        // Guardar la conversación
         if (onSaveConversation) {
           onSaveConversation(question, fullText);
         }
 
-        // Indicar que ya no estamos esperando una respuesta
         if (onEndWaitingResponse) {
           onEndWaitingResponse();
         }
 
-        // **Limpiar el input después de completar la respuesta**
         setInput('');
       }
     }, typingSpeed);
@@ -174,19 +156,18 @@ export default function Chat({
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); // Evitar salto de línea
+      e.preventDefault();
       if (!isWaitingForResponse) {
         handleSendMessage();
       }
     }
   };
 
-  // Ajustar la altura del textarea
   const adjustTextareaHeight = () => {
     const textarea = inputRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
     }
   };
 
@@ -194,7 +175,6 @@ export default function Chat({
     adjustTextareaHeight();
   }, [input]);
 
-  // Animación de los puntos en "Pensando respuesta..."
   useEffect(() => {
     let interval;
     if (isWaitingForResponse) {
@@ -204,7 +184,6 @@ export default function Chat({
         const newLoadingMessage = `Pensando respuesta${dots}`;
         setLoadingMessage(newLoadingMessage);
 
-        // Actualizar el mensaje del asistente con la nueva animación
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
           const assistantMessageIndex = assistantMessageIndexRef.current;
@@ -229,7 +208,6 @@ export default function Chat({
     return () => clearInterval(interval);
   }, [isWaitingForResponse]);
 
-  // Handler para clic en el componente Chat
   const handleChatClick = () => {
     if (onChatClick) {
       onChatClick();
@@ -238,46 +216,59 @@ export default function Chat({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" onClick={handleChatClick}>
-      <div
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 bg-[#FFFFFF] rounded-lg shadow-md mb-4"
-      >
-        {messages.map((msg, index) =>
-          msg.sender === 'user' ? (
-            <UserMessage key={index} text={msg.text} />
-          ) : (
-            <AssistantMessage
-              key={index}
-              text={msg.text}
-              isComplete={msg.isComplete}
-              onFeedback={handleAssistantFeedback}
-            />
-          )
-        )}
-      </div>
-      <div className="p-2 border-t border-gray-200 flex justify-center bg-[#FFFFFF]">
-        <div className="relative w-full max-w-xl">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            rows="1"
-            className="w-full py-2 pl-4 pr-10 rounded-lg bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
-            placeholder="Escribe un mensaje"
-            style={{ maxHeight: '200px' }}
-          />
-          <button
-            onClick={handleSendMessage}
-            className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none ${
-              isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            disabled={isWaitingForResponse}
-          >
-            <FaPaperPlane className="text-base" />
-          </button>
+      {messages.length > 0 && (
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 p-4 bg-[#FFFFFF] rounded-lg shadow-md max-w-full mx-auto overflow-y-auto mb-20 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          style={{ width: 'calc(100% - 1rem)' }}
+        >
+          {messages.map((msg, index) =>
+            msg.sender === 'user' ? (
+              <UserMessage key={index} text={msg.text} />
+            ) : (
+              <AssistantMessage
+                key={index}
+                text={msg.text}
+                isComplete={msg.isComplete}
+                onFeedback={handleAssistantFeedback}
+              />
+            )
+          )}
         </div>
-      </div>
+      )}
+<div className="p-4 border-t border-gray-200 bg-[#FFFFFF] fixed bottom-0 left-0 right-0 flex justify-center">
+  <div 
+    className="relative w-full max-w-2xl mx-auto flex items-center gap-3 px-4"
+    style={{
+      transform: 'translateX(14%)', // Mueve el input un 10% a la derecha
+    }}
+  >
+    <textarea
+      ref={inputRef}
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      onKeyPress={handleKeyPress}
+      rows="1"
+      className="w-full py-2 px-4 rounded-full bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
+      placeholder="Escribe un mensaje"
+      style={{ maxHeight: '120px' }}
+    />
+    <button
+      onClick={handleSendMessage}
+      className={`text-gray-600 hover:text-gray-800 focus:outline-none ${
+        isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+      disabled={isWaitingForResponse}
+    >
+      <FaPaperPlane className="text-xl" />
+    </button>
+  </div>
+</div>
+
+
+
+
+
     </div>
   );
 }

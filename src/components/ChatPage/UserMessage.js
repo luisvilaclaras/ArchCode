@@ -1,33 +1,47 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FaUserCircle } from 'react-icons/fa';
+import DOMPurify from 'dompurify';
 
 const processText = (text) => {
-  // Reemplazar **texto** por <strong>texto</strong>
   let boldText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-  // Insertar saltos de línea antes y después de los ":"
   boldText = boldText.replace(/:\s*/g, ':\n');
-
-  // Insertar saltos de línea antes de las partes en negrita
   boldText = boldText.replace(/(<strong>.*?<\/strong>)/g, '\n$1\n');
-
   return boldText;
 };
 
-
 export const UserMessage = ({ text }) => {
+  const textRef = useRef(null);
+  const [isSingleLine, setIsSingleLine] = useState(true);
+
+  useEffect(() => {
+    if (textRef.current) {
+      const lineHeight = parseInt(window.getComputedStyle(textRef.current).lineHeight, 10);
+      const lines = Math.round(textRef.current.scrollHeight / lineHeight);
+      setIsSingleLine(lines === 1);
+    }
+  }, [text]);
+
   return (
-    <div className="flex justify-center mb-2 relative">
-      <div className="flex justify-end w-full max-w-2xl items-start relative">
-        {/* Cuadro del mensaje con más espacio horizontal y margen para el ícono */}
-        <div className="bg-[#f3f4f6] text-[#333333] py-2 px-6 rounded-lg shadow-md relative" style={{ maxWidth: '80%', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
-          {/* Incrementamos el margen a la derecha para mayor separación con el ícono */}
-          <span className="text-sm mr-20" dangerouslySetInnerHTML={{ __html: processText(text) }}></span>
-          {/* Ajustamos la posición del ícono */}
-          <FaUserCircle className="absolute top-2 right-4 text-lg" />
+    <div className="flex justify-center mb-1 mt-4 w-full">
+      <div className="flex items-start bg-[#f3f4f6] py-2 px-4 rounded-lg shadow-sm max-w-2xl w-full ml-8">
+        <div className="flex justify-between items-center w-full">
+          <div
+            ref={textRef}
+            className="text-[#333333] flex-1 mr-4"
+            style={{
+              wordBreak: 'break-word',
+              whiteSpace: 'pre-line',
+              textAlign: isSingleLine ? 'right' : 'left',
+            }}
+          >
+            <span
+              className="text-base"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processText(text)) }}
+            ></span>
+          </div>
+          <FaUserCircle className="text-xl text-gray-500" aria-label="Usuario" />
         </div>
       </div>
     </div>
   );
 };
-
