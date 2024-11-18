@@ -249,7 +249,7 @@ export default function Chat({
       onChange={(e) => setInput(e.target.value)}
       onKeyPress={handleKeyPress}
       rows="1"
-      className="w-full py-2 px-4 rounded-full bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
+      className="w-full py-2 px-4 rounded-md bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
       placeholder="Escribe un mensaje"
       style={{ maxHeight: '120px' }}
     />

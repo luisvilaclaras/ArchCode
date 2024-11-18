@@ -22,7 +22,7 @@ export default function UserMenu() {
   };
 
   return (
-    <div className="relative inline-block text-left">
+    <div className="relative inline-block text-left ">
       {/* Botón para abrir el menú */}
       <div>
         <button

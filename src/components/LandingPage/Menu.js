@@ -1,16 +1,18 @@
+// Menu.js
+
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext'; // Traemos el contexto de autenticación
+import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import SignUpPopup from './SignUpPopUp'; // Popup de registro
-import LogInPopup from './LogInPopUp'; // Popup de login
+import SignUpPopup from './SignUpPopUp';
+import LogInPopup from './LogInPopUp';
 
 export default function Menu() {
   const [isSignUpPopupOpen, setIsSignUpPopupOpen] = useState(false);
   const [isLogInPopupOpen, setIsLogInPopupOpen] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false); // Controlar menú de perfil
-  const { currentUser, logout } = useAuth(); // Obtenemos el usuario actual y la función de logout desde el contexto
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
   const router = useRouter();
 
   const openSignUpPopup = () => setIsSignUpPopupOpen(true);
@@ -27,23 +29,29 @@ export default function Menu() {
   };
 
   const switchToSignUpPopup = () => {
-    closeLogInPopup(); // Cierra el popup de login
-    openSignUpPopup(); // Abre el popup de registro
+    closeLogInPopup();
+    openSignUpPopup();
   };
 
   const handleDashboardClick = () => {
     if (currentUser) {
-      router.push('/herramienta'); // Si el usuario está loggeado, lo redirigimos al chat
+      router.push('/herramienta');
     } else {
-      openLogInPopup(); // Si no está loggeado, mostramos el popup de login
+      openLogInPopup();
     }
   };
 
   // Función para desplazarse a la sección correspondiente
   const handleScrollToSection = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    if (window.location.pathname !== '/') {
+      // Si no estamos en la página principal, navegamos a '/' con el hash de la sección
+      router.push(`/#${id}`);
+    } else {
+      // Si estamos en la página principal, desplazamos a la sección
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
@@ -52,12 +60,12 @@ export default function Menu() {
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-8">
           <img 
-            src="images/ArchCode.webp" 
+            src="/images/ArchCode.webp" 
             alt="Logo" 
             className="h-10 cursor-pointer" 
             onClick={() => handleScrollToSection('home')} 
           />
-          <ul className="flex space-x-8 text-base font-semibold"> {/* Cambiamos text-lg a text-base */}
+          <ul className="flex space-x-8 text-base font-semibold">
             <li
               className="hover:text-lightBlue cursor-pointer font-personalizada"
               onClick={() => handleScrollToSection('home')}
@@ -74,7 +82,7 @@ export default function Menu() {
               className="hover:text-lightBlue cursor-pointer"
               onClick={() => handleScrollToSection('como-se-usa')}
             >
-              Descubre como funciona
+              Descubre cómo funciona
             </li>
             <li
               className="hover:text-lightBlue cursor-pointer"
@@ -106,11 +114,10 @@ export default function Menu() {
             Accede a la herramienta
           </button>
 
-
           {currentUser ? (
             <div className="relative">
               <img
-                src={currentUser.photoURL || '/images/profile.webp'} // Usar imagen de perfil del usuario o una imagen por defecto
+                src={currentUser.photoURL || '/images/profile.webp'}
                 alt="Profile"
                 className="h-10 w-10 rounded-full cursor-pointer"
                 onClick={toggleProfileMenu}
@@ -120,7 +127,7 @@ export default function Menu() {
               {isProfileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-[#344e6f] text-white rounded-lg shadow-lg py-2 z-50">
                   <button
-                    className="block w-full text-left px-4 py-2 text-white-700 hover:bg-[#344e6f]"
+                    className="block w-full text-left px-4 py-2 text-white hover:bg-[#2a3e5a]"
                     onClick={handleLogout}
                   >
                     Cerrar Sesión
@@ -141,8 +148,12 @@ export default function Menu() {
 
       {/* Mostrar Popups según sea necesario */}
       {isSignUpPopupOpen && <SignUpPopup closePopup={closeSignUpPopup} />}
-      {isLogInPopupOpen && <LogInPopup  closePopup={closeLogInPopup} switchToSignUpPopup={switchToSignUpPopup} // Pasa la función aquí
- />}
+      {isLogInPopupOpen && (
+        <LogInPopup
+          closePopup={closeLogInPopup}
+          switchToSignUpPopup={switchToSignUpPopup}
+        />
+      )}
     </nav>
   );
 }

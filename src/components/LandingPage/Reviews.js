@@ -22,7 +22,7 @@ const reviews = [
     profilePic: 'images/users/Antonio.webp'
   },
   { 
-    text: 'Desde que uso esta herramienta, encontrar normativas y entenderlas es muchísimo más fácil. Me ha ahorrado un montón de tiempo.', 
+    text: 'Desde que uso esta herramienta, encontrar normativas y entenderlas es muchísimo más fácil.', 
     user: 'Nicolás Caliu', 
     institution: 'Arquitecto técnico',
     profilePic: 'images/users/Alex.webp'

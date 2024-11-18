@@ -27,7 +27,7 @@ export default function FAQ() {
     const formattedDate = `${currentDate.getDate()}-${currentDate.getMonth() + 1}-${currentDate.getFullYear()}`;
 
     try {
-      await addDoc(collection(db, 'reviews'), {
+      await addDoc(collection(db, 'Reviews'), {
         type: `question-${formattedDate}`,
         userId: currentUser.uid,
         content: userQuestion.trim(),

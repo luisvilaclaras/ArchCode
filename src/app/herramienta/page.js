@@ -72,7 +72,12 @@ export default function HomePage() {
   useEffect(() => {
     setProjectInfo(initialMandatoryTags.map(tag => ({ ...tag, value: '' })));
   }, [resetTagsTrigger]);
-
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'; // Deshabilita el desplazamiento en el body
+    return () => {
+      document.body.style.overflow = 'auto'; // Restablece el desplazamiento al desmontar
+    };
+  }, []);
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -901,6 +906,77 @@ export default function HomePage() {
       console.error('Error al enviar la consulta con selección automática:', error);
       handleSendMessageResolveRef.current({ error: true, responseText: 'Error al procesar la solicitud.' });
       handleSendMessageResolveRef.current = null; // Restablecer después de usar
+    }
+  };
+
+  const handleWarningConfirm = async () => {
+    setShowWarningModal(false);
+  
+    if (warningType === 'noDocuments') {
+      handleSendMessageResolveRef.current({ sent: false });
+      return;
+    }
+  
+    if (warningType === 'noProjectInfo') {
+      let projectId;
+  
+      if (!selectedProject || !selectedProject.projectId) {
+        try {
+          const user = auth.currentUser;
+          if (!user) {
+            handleSendMessageResolveRef.current({ sent: true, responseText: 'Error: No hay usuario autenticado.' });
+            return;
+          }
+  
+          const projectCount = userData.projects ? userData.projects.length : 0;
+          const projectDisplayName = `Proyecto ${projectCount + 1}`;
+          projectId = uuidv4();
+  
+          // Crear el documento del proyecto en Firestore
+          await setDoc(doc(db, 'Projects', projectId), {
+            name: projectDisplayName,
+            content: projectInfo,
+            userId: user.uid,
+          });
+  
+          // Actualizar la lista de proyectos del usuario
+          const updatedProjects = userData.projects
+            ? [{ projectId, name: projectDisplayName }, ...userData.projects]
+            : [{ projectId, name: projectDisplayName }];
+  
+          await updateDoc(doc(db, "Users", user.uid), {
+            projects: updatedProjects,
+          });
+  
+          setUserData(prevData => ({
+            ...prevData,
+            projects: updatedProjects,
+          }));
+          setSelectedProject({ projectId, name: projectDisplayName });
+  
+          // Guardar la información del proyecto antes de hacer la pregunta
+          await handleSaveProject(projectInfo);
+  
+        } catch (error) {
+          console.error('Error al crear el proyecto:', error);
+          handleSendMessageResolveRef.current({ sent: true, responseText: 'Error al crear el proyecto.' });
+          return;
+        }
+      } else {
+        projectId = selectedProject.projectId;
+      }
+  
+      if (projectId) {
+        const response = await handleUserQuery(pendingQuestion, projectId);
+        setPendingQuestion('');
+  
+        // Guardar la conversación con el projectId correcto
+        await handleSaveConversation(pendingQuestion, response.responseText, projectId);
+  
+        handleSendMessageResolveRef.current({ sent: true, responseText: response.responseText, error: response.error });
+      } else {
+        handleSendMessageResolveRef.current({ sent: true, responseText: 'Error: No se ha establecido un projectId válido.' });
+      }
     }
   };
   

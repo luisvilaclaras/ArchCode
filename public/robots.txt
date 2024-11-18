@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://archcode.io
+
+# Sitemaps
+Sitemap: https://archcode.io/sitemap.xml
