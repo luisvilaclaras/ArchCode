@@ -1,3 +1,5 @@
+// AuthContext.js
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -12,16 +14,23 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Nuevo estado para admin
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!auth) {
-      console.error("Firebase auth is not initialized correctly.");
+      setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      if (user) {
+        // Verificar si el usuario es el administrador
+        setIsAdmin(user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL);
+      } else {
+        setIsAdmin(false);
+      }
       setLoading(false);
     });
 
@@ -34,7 +43,8 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
-    setCurrentUser, // Añadimos setCurrentUser al contexto
+    isAdmin, // Incluir isAdmin en el contexto
+    loading,
     logout,
   };
 

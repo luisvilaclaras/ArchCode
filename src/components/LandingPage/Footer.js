@@ -1,5 +1,3 @@
-// Footer.js
-
 'use client';
 
 import React from 'react';
@@ -24,20 +22,20 @@ export default function Footer() {
     <footer className="bg-[#1e3047] py-12 px-6 text-white font-personalizada">
       <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
         {/* Logo y lema */}
-        <div className="mb-4 md:-ml-48 text-center">
+        <div className="mb-4 text-center md:text-left">
           <img
             src="/images/ArchCode.webp"
             alt="ArchCode Logo"
             className="h-12 w-auto mx-auto cursor-pointer"
             onClick={() => handleScrollToSection('home')}
           />
-          <p className="text-sm mt-1 text-gray-300 max-w-[200px] mx-auto text-center leading-tight">
+          <p className="text-sm mt-1 text-gray-300 max-w-[200px] mx-auto leading-tight">
             Acelera tus proyectos con la potencia de la IA y ahorra tiempo
           </p>
         </div>
 
         {/* Navegación */}
-        <div className="md:col-span-1 text-sm space-y-2">
+        <div className="text-sm space-y-2 text-center md:text-left">
           <h3 className="text-lg font-semibold mb-4">Navegación</h3>
           <ul className="text-gray-300 space-y-2">
             <li
@@ -91,7 +89,7 @@ export default function Footer() {
         </div>
 
         {/* Ayuda y Legal */}
-        <div className="md:col-span-1 text-sm space-y-6">
+        <div className="text-sm space-y-6 text-center md:text-left">
           {/* Ayuda */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Ayuda</h3>
@@ -127,7 +125,7 @@ export default function Footer() {
         </div>
 
         {/* Documents */}
-        <div className="md:col-span-1 text-sm space-y-2">
+        <div className="text-sm space-y-2 text-center md:text-left">
           <h3 className="text-lg font-semibold mb-4">Documentos</h3>
           <ul className="text-gray-300 space-y-2">
             <li>
@@ -173,8 +171,6 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-
-      
     </footer>
   );
 }

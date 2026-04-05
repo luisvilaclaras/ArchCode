@@ -18,32 +18,52 @@ export default function Chat({
   const [loadingMessage, setLoadingMessage] = useState('Pensando respuesta');
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  // Ya no necesitaremos la ref para el ancla
   const assistantMessageIndexRef = useRef(null);
 
   useEffect(() => {
     setMessages(initialMessages || []);
   }, [initialMessages]);
 
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+  // Función para verificar la posición actual del scroll
+  const isUserNearBottom = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Si el usuario está a menos de 100px del final, se considera cerca
+      return scrollHeight - scrollTop - clientHeight < 100;
+    }
+    return false;
+  };
+
+  // Nueva función: desplazar hasta el último mensaje (bloque) usando block: 'nearest'
+  const scrollToLastMessage = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      // Obtener el último elemento hijo (último mensaje)
+      const lastMessage = container.lastElementChild;
+      if (lastMessage) {
+        // Primero, desplaza el último mensaje en vista de forma suave
+        lastMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Luego, con un pequeño delay, desplaza unos píxeles extra hacia abajo
+        setTimeout(() => {
+          container.scrollBy({ top: 400, behavior: 'smooth' }); // desplaza 30px extra
+        }, 1);
+      }
     }
   };
 
+  // Efecto: cada vez que se actualicen los mensajes se intenta hacer scroll hasta el último mensaje
   useEffect(() => {
-    scrollToBottom();
+    scrollToLastMessage();
+    // Si el contenido tarda en renderizarse, se podría usar un pequeño timeout
+    // setTimeout(scrollToLastMessage, 50);
   }, [messages]);
 
   const handleSendMessage = async () => {
     if (input.trim()) {
       const question = input;
-
-      if (onStartWaitingResponse) {
-        onStartWaitingResponse();
-      }
+      onStartWaitingResponse && onStartWaitingResponse();
 
       let assistantMessageIndex;
       setMessages((prevMessages) => {
@@ -59,9 +79,9 @@ export default function Chat({
 
       try {
         const response = await onSendMessage(question);
-
         if (response && response.sent) {
           if (response.responseText && !response.error) {
+            onEndWaitingResponse && onEndWaitingResponse();
             typeMessage(response.responseText, assistantMessageIndex, question);
           } else {
             setMessages((prevMessages) => {
@@ -73,9 +93,7 @@ export default function Chat({
               };
               return newMessages;
             });
-            if (onEndWaitingResponse) {
-              onEndWaitingResponse();
-            }
+            onEndWaitingResponse && onEndWaitingResponse();
             setInput('');
           }
         } else {
@@ -84,9 +102,7 @@ export default function Chat({
             newMessages.splice(assistantMessageIndex, 1);
             return newMessages;
           });
-          if (onEndWaitingResponse) {
-            onEndWaitingResponse();
-          }
+          onEndWaitingResponse && onEndWaitingResponse();
         }
       } catch (error) {
         console.error('Error al enviar el mensaje:', error);
@@ -95,28 +111,25 @@ export default function Chat({
           newMessages.splice(assistantMessageIndex, 1);
           return newMessages;
         });
-        if (onEndWaitingResponse) {
-          onEndWaitingResponse();
-        }
+        onEndWaitingResponse && onEndWaitingResponse();
       }
     }
   };
 
   const handleAssistantFeedback = (type, content) => {
-    if (onFeedback) {
-      onFeedback(type, content);
-    }
+    onFeedback && onFeedback(type, content);
   };
 
+  // La función typeMessage simula el tipeo progresivo de la respuesta
   const typeMessage = (fullText, index, question) => {
     let currentText = '';
     let i = 0;
-    const typingSpeed = 1;
+    const typingSpeed = 10; // milisegundos
+    const charsPerTick = 5;
 
     const interval = setInterval(() => {
-      currentText += fullText.charAt(i);
-      i++;
-
+      currentText += fullText.substring(i, i + charsPerTick);
+      i += charsPerTick;
       setMessages((prevMessages) => {
         const newMessages = [...prevMessages];
         newMessages[index] = {
@@ -125,11 +138,6 @@ export default function Chat({
         };
         return newMessages;
       });
-
-      setTimeout(() => {
-        scrollToBottom();
-      }, 0);
-
       if (i >= fullText.length) {
         clearInterval(interval);
         setMessages((prevMessages) => {
@@ -140,15 +148,7 @@ export default function Chat({
           };
           return newMessages;
         });
-
-        if (onSaveConversation) {
-          onSaveConversation(question, fullText);
-        }
-
-        if (onEndWaitingResponse) {
-          onEndWaitingResponse();
-        }
-
+        onSaveConversation && onSaveConversation(question, fullText);
         setInput('');
       }
     }, typingSpeed);
@@ -163,6 +163,7 @@ export default function Chat({
     }
   };
 
+  // Ajuste del área del textarea
   const adjustTextareaHeight = () => {
     const textarea = inputRef.current;
     if (textarea) {
@@ -183,7 +184,6 @@ export default function Chat({
         const dots = '.'.repeat((count % 3) + 1);
         const newLoadingMessage = `Pensando respuesta${dots}`;
         setLoadingMessage(newLoadingMessage);
-
         setMessages((prevMessages) => {
           const newMessages = [...prevMessages];
           const assistantMessageIndex = assistantMessageIndexRef.current;
@@ -199,7 +199,6 @@ export default function Chat({
           }
           return newMessages;
         });
-
         count++;
       }, 800);
     } else {
@@ -209,9 +208,7 @@ export default function Chat({
   }, [isWaitingForResponse]);
 
   const handleChatClick = () => {
-    if (onChatClick) {
-      onChatClick();
-    }
+    onChatClick && onChatClick();
   };
 
   return (
@@ -219,7 +216,7 @@ export default function Chat({
       {messages.length > 0 && (
         <div
           ref={messagesContainerRef}
-          className="flex-1 p-4 bg-[#FFFFFF] rounded-lg shadow-md max-w-full mx-auto overflow-y-auto mb-20 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          className="flex-1 p-4 bg-[#FFFFFF] rounded-lg shadow-md max-w-full mx-auto overflow-y-auto overflow-x-hidden mb-20 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 scrollbar-track-gray-100"
           style={{ width: 'calc(100% - 1rem)' }}
         >
           {messages.map((msg, index) =>
@@ -236,39 +233,29 @@ export default function Chat({
           )}
         </div>
       )}
-<div className="p-4 border-t border-gray-200 bg-[#FFFFFF] fixed bottom-0 left-0 right-0 flex justify-center">
-  <div 
-    className="relative w-full max-w-2xl mx-auto flex items-center gap-3 px-4"
-    style={{
-      transform: 'translateX(14%)', // Mueve el input un 10% a la derecha
-    }}
-  >
-    <textarea
-      ref={inputRef}
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      onKeyPress={handleKeyPress}
-      rows="1"
-      className="w-full py-2 px-4 rounded-md bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
-      placeholder="Escribe un mensaje"
-      style={{ maxHeight: '120px' }}
-    />
-    <button
-      onClick={handleSendMessage}
-      className={`text-gray-600 hover:text-gray-800 focus:outline-none ${
-        isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
-      disabled={isWaitingForResponse}
-    >
-      <FaPaperPlane className="text-xl" />
-    </button>
-  </div>
-</div>
-
-
-
-
-
+      <div className="p-4 border-t border-gray-200 bg-[#FFFFFF] fixed bottom-0 left-0 right-0 flex justify-center">
+        <div className="relative w-full max-w-2xl mx-auto flex items-center gap-3 px-4">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            rows="1"
+            className="w-full py-2 px-4 rounded-md bg-[#F5F5F5] border-none focus:outline-none text-sm resize-none overflow-hidden shadow-md"
+            placeholder="Escribe un mensaje"
+            style={{ maxHeight: '120px' }}
+          />
+          <button
+            onClick={handleSendMessage}
+            className={`text-gray-600 hover:text-gray-800 focus:outline-none ${
+              isWaitingForResponse ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={isWaitingForResponse}
+          >
+            <FaPaperPlane className="text-xl" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

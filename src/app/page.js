@@ -27,7 +27,6 @@ export default function Home() {
     closeLogInPopup();
     openSignUpPopup();
   };
-
   return (
     <div
       style={{
@@ -74,26 +73,30 @@ export default function Home() {
           >
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 max-w-7xl mx-auto px-10 items-center">
               {/* Contenido de texto */}
-              <div className="text-left lg:col-span-2">
-                <h1 className="text-4xl font-bold mb-4 leading-snug">
-                  La IA definitiva para arquitectos
-                </h1>
-                <p className="text-xl mb-6">
-                  Acelera tus proyectos con la potencia de la IA para
-                  arquitectos y gana tiempo
-                </p>
+              <div className="lg:col-span-2 px-4">
+                {/* En móvil, el título será más pequeño (text-xl) y en desktop se mantiene text-2xl */}
+                <div className="text-center md:text-left lg:col-span-2">
+                  <h1 className="text-2xl md:text-4xl font-bold mb-4 leading-snug">
+                    La IA definitiva para arquitectos
+                  </h1>
+                  <p className="text-base md:text-xl mb-6">
+                    Acelera tus proyectos con la potencia de la IA para arquitectos y gana tiempo
+                  </p>
+                </div>
+
                 <button
                   onClick={openSignUpPopup}
-                  className="bg-[#2563eb] text-white py-3 px-8 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                  className="bg-[#2563eb] text-white py-2 px-6 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 block md:inline-block md:mx-0 mx-auto text-center"
                 >
                   Prueba ahora la Beta
                 </button>
+
                 <div className="mt-8 flex space-x-8 text-lg text-gray-300"></div>
               </div>
               {/* Video */}
               <div className="flex justify-center lg:col-span-3">
                 <video
-                  className="w-full rounded-lg shadow-lg"
+                  className="w-full rounded-lg shadow-lg mx-auto"
                   autoPlay
                   loop
                   muted
@@ -115,21 +118,21 @@ export default function Home() {
 
           <section
             id="producto"
-            className="font-personalizada bg-[#1e3047] text-white py-20 pt-32"
+            className="font-personalizada bg-[#1e3047] text-white py-20 pt-32 px-4 md:px-0"
           >
             <div className="text-center mb-5">
-              <h2 className="text-5xl font-bold">
+              {/* En móviles se usa text-3xl y en escritorio se restablece a text-5xl */}
+              <h2 className="font-bold text-3xl md:text-5xl">
                 Simplifica el cumplimiento normativo en tus proyectos
               </h2>
             </div>
-
             {/* Primera Sección */}
             <section className="bg-[#1e3047] text-white py-20">
               <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-4 px-6">
                 {/* Video */}
                 <div className="flex justify-center">
                   <video
-                    className="w-full max-w-xl rounded-md shadow-lg"
+                    className="w-full max-w-xl rounded-md shadow-lg mx-auto"
                     autoPlay
                     loop
                     muted
@@ -145,7 +148,7 @@ export default function Home() {
                 </div>
 
                 {/* Explicación del video */}
-                <div className="px-6">
+                <div className="px-6 text-center md:text-left">
                   <span className="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full mb-4">
                     ✔ Respuestas instantáneas
                   </span>
@@ -153,11 +156,7 @@ export default function Home() {
                     Encuentra respuesta a tus preguntas al instante
                   </h3>
                   <p className="mb-4 text-lg leading-relaxed">
-                    Con solo un clic, nuestra herramienta te proporciona la
-                    interpretación correcta de los códigos técnicos de
-                    arquitectura. Ya sea una normativa del CTE o un detalle
-                    específico sobre un sistema constructivo, nuestra IA te
-                    ofrece la guía adecuada.
+                    Con solo un clic, nuestra herramienta te proporciona la interpretación correcta de los códigos técnicos de arquitectura. Ya sea una normativa del CTE o un detalle específico sobre un sistema constructivo, nuestra IA te ofrece la guía adecuada.
                   </p>
                 </div>
               </div>
@@ -167,26 +166,22 @@ export default function Home() {
             <section className="bg-[#1e3047] text-white py-20">
               <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-4 px-6">
                 {/* Explicación del video */}
-                <div className="px-6">
+                <div className="px-6 text-center md:text-left">
                   <span className="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full mb-4">
                     ✔ Respuestas precisas
                   </span>
                   <h3 className="text-3xl font-bold mb-4 leading-snug">
-                    Proporciona más detalles para obtener respuestas más
-                    precisas
+                    Proporciona más detalles para obtener respuestas más precisas
                   </h3>
                   <p className="mb-4 text-lg leading-relaxed">
-                    Cuanta más información proporciones, más exactas serán las
-                    respuestas. Introduce etiquetas específicas sobre tu
-                    proyecto, como el tipo de edificación o ubicación, y nuestra
-                    IA se encargará de hacer el resto.
+                    Cuanta más información proporciones, más exactas serán las respuestas. Introduce etiquetas específicas sobre tu proyecto, como el tipo de edificación o ubicación, y nuestra IA se encargará de hacer el resto.
                   </p>
                 </div>
 
                 {/* Video */}
                 <div className="flex justify-center">
                   <video
-                    className="w-full max-w-xl rounded-md shadow-lg"
+                    className="w-full max-w-xl rounded-md shadow-lg mx-auto"
                     autoPlay
                     loop
                     muted
@@ -209,7 +204,7 @@ export default function Home() {
                 {/* Video */}
                 <div className="flex justify-center">
                   <video
-                    className="w-full max-w-xl rounded-md shadow-lg"
+                    className="w-full max-w-xl rounded-md shadow-lg mx-auto"
                     autoPlay
                     loop
                     muted
@@ -225,7 +220,7 @@ export default function Home() {
                 </div>
 
                 {/* Explicación del video */}
-                <div className="px-6">
+                <div className="px-6 text-center md:text-left">
                   <span className="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full mb-4">
                     ✔ Explicaciones detalladas
                   </span>
@@ -233,11 +228,7 @@ export default function Home() {
                     Entiende y comprende la normativa
                   </h3>
                   <p className="mb-4 text-lg leading-relaxed">
-                    Nuestra IA en arquitectura te ayuda a interpretar y aplicar
-                    las normativas arquitectónicas con profundidad. Aprende a
-                    desglosar y entender cada código, para que puedas
-                    implementarlo fácilmente en tus proyectos, asegurando el
-                    cumplimiento de cada detalle técnico.
+                    Nuestra IA en arquitectura te ayuda a interpretar y aplicar las normativas arquitectónicas con profundidad. Aprende a desglosar y entender cada código, para que puedas implementarlo fácilmente en tus proyectos, asegurando el cumplimiento de cada detalle técnico.
                   </p>
                 </div>
               </div>
@@ -247,7 +238,7 @@ export default function Home() {
           {/* Information Section */}
           <section
             id="ventajas"
-            className="font-personalizada bg-[#1e3047] py-20 text-center"
+            className="font-personalizada bg-[#1e3047] py-20 text-center px-4 md:px-0"
           >
             <h3 className="text-3xl font-bold mb-6 text-white pt-20">
               Agiliza tu proceso de investigación
@@ -257,7 +248,8 @@ export default function Home() {
               eficientes con la ayuda de la IA
             </p>
 
-            <div className="flex justify-center space-x-6">
+            {/* Versión escritorio: exactamente igual al original */}
+            <div className="hidden md:flex justify-center space-x-6">
               <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
                 {/* Imagen encima del título */}
                 <img
@@ -275,7 +267,6 @@ export default function Home() {
                 </p>
               </div>
               <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
-                {/* Imagen encima del título */}
                 <img
                   src="images/tiempo.webp"
                   alt="Sé más eficiente"
@@ -290,7 +281,6 @@ export default function Home() {
                 </p>
               </div>
               <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
-                {/* Imagen encima del título */}
                 <img
                   src="images/informacion valiosa.webp"
                   alt="Obtén información valiosa"
@@ -305,9 +295,9 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="flex justify-center space-x-6 mt-8">
+
+            <div className="hidden md:flex justify-center space-x-6 mt-8">
               <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
-                {/* Imagen encima del título */}
                 <img
                   src="images/ia.webp"
                   alt="Aprovecha la IA"
@@ -321,7 +311,6 @@ export default function Home() {
                 </p>
               </div>
               <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-64">
-                {/* Imagen encima del título */}
                 <img
                   src="images/Simplifica.webp"
                   alt="Simplifica la normativa"
@@ -335,41 +324,80 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          </section>
 
-          {/* Try For Free Section */}
-          <section
-            className="font-personalizada bg-gradient-to-r from-lightBlue to-darkBlue text-white py-20 text-center"
-          >
-            <h2 className="text-3xl font-bold mb-6">
-              ¡Empieza a agilizar tus proyectos ahora!
-            </h2>
-            <button
-              onClick={openSignUpPopup}
-              className="bg-white text-blue-500 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-gray-100 transition duration-300 ease-in-out"
-            >
-              Prueba ahora la Beta
-            </button>
-          </section>
+            {/* Versión móvil: se muestran los cuadros de forma vertical */}
+            <div className="flex flex-col md:hidden space-y-6">
+              <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-full max-w-xs mx-auto">
+                <img
+                  src="images/investigar.webp"
+                  alt="Investiga más rápido"
+                  className="mx-auto mb-3 w-10 h-10"
+                />
+                <h4 className="text-base font-semibold text-white">
+                  Investiga más rápido
+                </h4>
+                <p className="text-sm text-gray-300 mt-2">
+                  Analiza rápidamente una gran cantidad de códigos técnicos, permitiendo buscar y encontrar fácilmente entre normativas específicas.
+                </p>
+              </div>
+              <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-full max-w-xs mx-auto">
+                <img
+                  src="images/tiempo.webp"
+                  alt="Sé más eficiente"
+                  className="mx-auto mb-3 w-10 h-10"
+                />
+                <h4 className="text-base font-semibold text-white">
+                  Sé más eficiente
+                </h4>
+                <p className="text-sm text-gray-300 mt-2">
+                  Identifica recursos valiosos que podrías haber pasado por alto en tu investigación, optimizando el tiempo y esfuerzo.
+                </p>
+              </div>
+              <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-full max-w-xs mx-auto">
+                <img
+                  src="images/informacion valiosa.webp"
+                  alt="Obtén información valiosa"
+                  className="mx-auto mb-3 w-10 h-10"
+                />
+                <h4 className="text-base font-semibold text-white">
+                  Obtén información valiosa
+                </h4>
+                <p className="text-sm text-gray-300 mt-2">
+                  Desglosa y analiza grandes volúmenes de códigos y asambleas sin complicaciones.
+                </p>
+              </div>
+            </div>
 
-          {/* Reviews Section */}
-          <section id="reviews" className="font-personalizada pt-40">
-            <Reviews />
-          </section>
-
-          {/* Satisfied Users Section */}
-          <section
-            id="nuestro-lema"
-            className="font-personalizada pt-40 bg-[#1e3047] text-white py-16 text-center"
-          >
-            <div className="max-w-4xl mx-auto">
-              <blockquote className="text-3xl font-bold mb-4 leading-relaxed">
-                "El éxito de un proyecto no solo está en su diseño, sino en su
-                capacidad para cumplir con cada normativa. Contar con las
-                respuestas correctas es tan esencial como los planos mismos."
-              </blockquote>
+            <div className="flex flex-col md:hidden space-y-6 mt-8">
+              <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-full max-w-xs mx-auto">
+                <img
+                  src="images/ia.webp"
+                  alt="Aprovecha la IA"
+                  className="mx-auto mb-3 w-10 h-10"
+                />
+                <h4 className="text-base font-semibold text-white">
+                  Aprovecha la IA
+                </h4>
+                <p className="text-sm text-gray-300 mt-2">
+                  Utiliza el poder de la inteligencia artificial para interpretar y aplicar normativas de manera más eficiente y precisa.
+                </p>
+              </div>
+              <div className="bg-[#344e6f] p-6 shadow-lg rounded-lg w-full max-w-xs mx-auto">
+                <img
+                  src="images/Simplifica.webp"
+                  alt="Simplifica la normativa"
+                  className="mx-auto mb-3 w-10 h-10"
+                />
+                <h4 className="text-base font-semibold text-white">
+                  Simplifica la normativa
+                </h4>
+                <p className="text-sm text-gray-300 mt-2">
+                  Convierte la complejidad de los códigos técnicos en respuestas claras y fáciles de entender.
+                </p>
+              </div>
             </div>
           </section>
+
 
           {/* Pricing Section */}
           <section id="precios">

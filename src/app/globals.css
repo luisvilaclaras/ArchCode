@@ -56,7 +56,9 @@ body {
   animation: scroll 30s linear infinite;
 }
 
-
+.text-blue-500 {
+  color: #3b82f6;
+}
 
 
 

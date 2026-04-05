@@ -5,7 +5,7 @@ import React from 'react';
 export default function SuccessNotification({ message, onClose }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-60">
-      <div className="bg-green-500 p-6 rounded-lg shadow-lg text-center w-[400px] border border-white">
+      <div className="bg-[#344e6f] p-6 rounded-lg shadow-lg text-center w-[400px] border border-white">
         <h2 className="text-lg font-semibold mb-4 text-white">Éxito</h2>
         <p className="mb-6 text-gray-200">{message}</p>
         <button onClick={onClose} className="button-common-style">

@@ -10,23 +10,21 @@ import { motion } from 'framer-motion';
 export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   const [error, setError] = useState('');
   const [showResendButton, setShowResendButton] = useState(false);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
   const [unverifiedUser, setUnverifiedUser] = useState(null);
 
-  const { setCurrentUser } = useAuth(); // Utilizamos el contexto para actualizar el usuario actual
+  const { isAdmin, loading } = useAuth();
   const router = useRouter();
 
   const handleLogIn = async (e) => {
     e.preventDefault();
-    setError(''); // Limpiar errores previos
+    setError('');
     setShowResendButton(false);
     setUnverifiedUser(null);
 
     try {
-      // Intentar iniciar sesión con Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -37,15 +35,9 @@ export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
         return;
       }
 
-      // Actualizamos el estado global del usuario en el contexto
-      setCurrentUser(user);
-
-      // Redirigir al usuario a la herramienta
-      closePopup(); // Cerrar el popup
-      router.push('/herramienta'); // Cambiar la ruta según la página de destino
-
+      closePopup();
+      router.push('/herramienta');
     } catch (error) {
-      // Manejar errores comunes de autenticación
       if (error.code === 'auth/user-not-found') {
         setError('Usuario no encontrado. Por favor, verifica tu email y vuelve a intentarlo.');
       } else if (error.code === 'auth/wrong-password') {
@@ -64,7 +56,6 @@ export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
         await sendEmailVerification(unverifiedUser);
         alert('Correo de verificación enviado. Por favor, revisa tu bandeja de entrada.');
         setIsResendDisabled(true);
-        // Deshabilitar el botón durante 15 segundos
         setTimeout(() => {
           setIsResendDisabled(false);
         }, 30000);
@@ -86,7 +77,7 @@ export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 50 }}
           transition={{ duration: 0.3 }}
-          className="bg-[#344e6f] p-6 rounded-lg shadow-lg w-full max-w-md relative text-white"
+          className="bg-[#344e6f] p-6 md:p-8 rounded-lg shadow-lg w-full max-w-md relative text-white"
         >
           <button
             className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl focus:outline-none"
@@ -94,11 +85,14 @@ export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
           >
             &times;
           </button>
-          <h2 className="text-2xl font-semibold text-center mb-6">Inicia Sesión</h2>
+          {/* Título: en móvil se muestra más pequeño (text-xl) y en escritorio (md) se restablece a text-2xl */}
+          <h2 className="text-xl md:text-2xl font-semibold text-center mb-6">
+            Inicia Sesión
+          </h2>
 
           {/* Formulario de login */}
-          <form onSubmit={handleLogIn}>
-            <div className="mb-4">
+          <form onSubmit={handleLogIn} className="flex flex-col items-center">
+            <div className="mb-4 w-full">
               <input
                 type="email"
                 id="email"
@@ -110,7 +104,7 @@ export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
               />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-4 w-full">
               <div className="relative">
                 <input
                   type="password"
@@ -126,8 +120,8 @@ export default function LogInPopup({ closePopup, switchToSignUpPopup }) {
 
             {/* Mostrar errores si existen */}
             {error && (
-              <div>
-                <p className="text-red-400 text-sm mb-2">{error}</p>
+              <div className="w-full">
+                <p className="text-red-400 text-sm mb-2 text-center">{error}</p>
                 {showResendButton && (
                   <button
                     type="button"

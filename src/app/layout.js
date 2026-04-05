@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "ArchCode - IA para Arquitectura. Normativas CTE, RITE, Urbanismo.",
+  title: "ArchCode - IA para Arquitectura. CTE, RITE, Urbanismo.",
   description: "La IA definitiva para arquitectos. Acelera tus proyectos con la potencia de la IA para arquitectos y gana tiempo",
   icons: {
     icon: "images/lupa.webp",

@@ -1,10 +1,11 @@
+// components/NewsDetail.js
+
 import React from 'react';
 import Head from 'next/head';
 import Menu from '@/components/LandingPage/Menu';
 import Footer from '@/components/LandingPage/Footer';
 import ClientImage from '@/components/News/ClientImage';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownWithLinks from '@/components/MarkdownWithLinks'; // Importa el nuevo componente
 import { db } from '../../../../firebase-credentials';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { use } from 'react';
@@ -16,8 +17,10 @@ function normalizeMarkdownContent(content) {
     .replace(/---/g, '\n\n---\n\n')
     .replace(/(##\s.+)\n*/g, '\n\n$1\n\n')
     .replace(/(\*\*.+?\*\*)/g, '$1')
+    // Evita añadir saltos de línea dentro de enlaces
+    .replace(/(?<!\()(https?:\/\/[^\s)]+)/g, '\n$1')
     .replace(/\.\s+/g, '.\n\n')
-    .replace(/(1\.)/g, '\n$1')
+    .replace(/(\d\.)/g, '\n$1')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -69,28 +72,7 @@ export default function NewsDetail({ params }) {
 
                 {/* Contenido */}
                 <div className="prose prose-lg text-gray-800 leading-relaxed">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      strong: ({ children }) => (
-                        <span className="font-bold text-black">{children}</span>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-2xl font-bold text-black mt-6 mb-4">{children}</h2>
-                      ),
-                      ol: ({ children }) => (
-                        <ol className="list-decimal pl-6 mb-4">{children}</ol>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc pl-6 mb-4">{children}</ul>
-                      ),
-                      li: ({ children }) => (
-                        <li className="mb-2">{children}</li>
-                      ),
-                    }}
-                  >
-                    {content || 'Contenido no disponible.'}
-                  </ReactMarkdown>
+                  <MarkdownWithLinks content={content} />
                 </div>
               </div>
             </div>

@@ -45,9 +45,12 @@ export default function FAQ() {
 
   return (
     <section className="bg-[#1e3047] text-white py-16 text-center">
-      <h2 className="text-4xl font-bold mb-8">¿Todavía tienes preguntas?</h2>
+      {/* El título se muestra en un tamaño menor en móviles (text-2xl) y en escritorio se incrementa a text-4xl */}
+      <h2 className="text-2xl md:text-4xl font-bold mb-8">
+        ¿Todavía tienes preguntas?
+      </h2>
 
-      {/* Input para la pregunta del usuario */}
+      {/* Formulario centrado */}
       <form onSubmit={handleQuestionSubmit} className="flex flex-col items-center">
         <input
           type="text"
@@ -58,7 +61,7 @@ export default function FAQ() {
         />
         <button
           type="submit"
-          className="bg-[#2563eb] text-white py-2 px-6 rounded-full shadow-md hover:bg-blue-600 transition"
+          className="bg-[#2563eb] text-white py-2 px-6 rounded-full shadow-md hover:bg-blue-600 transition mx-auto block text-center"
         >
           Enviar Pregunta
         </button>
@@ -69,7 +72,8 @@ export default function FAQ() {
 
       {submittedQuestion && (
         <div className="mt-8">
-          <h3 className="text-2xl font-semibold">Tu pregunta:</h3>
+          {/* El subtítulo "Tu pregunta:" se muestra en text-xl en móviles y text-2xl en escritorio */}
+          <h3 className="text-xl md:text-2xl font-semibold">Tu pregunta:</h3>
           <p className="text-lg mt-2">{submittedQuestion}</p>
         </div>
       )}

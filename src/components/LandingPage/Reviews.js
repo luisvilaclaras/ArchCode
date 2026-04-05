@@ -1,6 +1,4 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const reviews = [
   { 
@@ -32,13 +30,12 @@ const reviews = [
 export default function Reviews() {
   const [currentReview, setCurrentReview] = useState(0);
 
-  // Automáticamente rotar las reviews cada 5 segundos
+  // Rotación automática cada 5 segundos
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentReview((prev) => (prev + 1) % reviews.length);
-    }, 5000); // Cambia cada 5 segundos
-
-    return () => clearInterval(interval); // Limpiar el intervalo cuando el componente se desmonte
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const nextReview = () => {
@@ -51,15 +48,17 @@ export default function Reviews() {
 
   const getReviewClass = (index) => {
     if (index === currentReview) return "opacity-100";
-    return "opacity-50 blur-sm"; // Difuminado para los elementos no activos
+    return "opacity-50 blur-sm"; // Difuminado para elementos no activos
   };
 
   return (
-    <section className="bg-[#1e3047] text-white py-16 text-center">
+    <section className="bg-[#1e3047] text-white py-16 text-center px-4 md:px-0">
       <h2 className="text-4xl font-bold mb-8">Lo que los usuarios dicen</h2>
       <div className="relative max-w-3xl mx-auto flex justify-center items-center space-x-6">
         {/* Review anterior */}
-        <div className={`absolute left-0 transform -translate-x-1/3 transition-opacity duration-500 ${getReviewClass((currentReview - 1 + reviews.length) % reviews.length)}`}>
+        <div
+          className={`absolute left-0 transform -translate-x-1/3 transition-opacity duration-500 ${getReviewClass((currentReview - 1 + reviews.length) % reviews.length)}`}
+        >
           <div className="flex items-center space-x-4">
             <img 
               src={reviews[(currentReview - 1 + reviews.length) % reviews.length].profilePic} 
@@ -88,7 +87,9 @@ export default function Reviews() {
         </div>
 
         {/* Review siguiente */}
-        <div className={`absolute right-0 transform translate-x-1/3 transition-opacity duration-500 ${getReviewClass((currentReview + 1) % reviews.length)}`}>
+        <div
+          className={`absolute right-0 transform translate-x-1/3 transition-opacity duration-500 ${getReviewClass((currentReview + 1) % reviews.length)}`}
+        >
           <div className="flex items-center space-x-4">
             <img 
               src={reviews[(currentReview + 1) % reviews.length].profilePic} 

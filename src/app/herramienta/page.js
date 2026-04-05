@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { auth, db } from '../../../firebase-credentials';
 import { doc, setDoc, getDoc, updateDoc, addDoc, collection, arrayUnion, deleteDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
@@ -13,9 +13,9 @@ import { v4 as uuidv4 } from 'uuid';
 import ConfirmationModal from '@/components/Modals/ConfirmationModal';
 import SuccessModal from '@/components/Modals/SuccessModal';
 import WarningModal from '@/components/Modals/WarningModal';
-import PdfRequestModal from '@/components/Modals/PdfRequestModal';
 import OpinionModal from '@/components/Modals/OpinionModal';
 import AlertModal from '@/components/Modals/AlertModal';
+import PdfUploadModal from '@/components/Modals/pdfUploadModal';
 
 export default function HomePage() {
   const [userData, setUserData] = useState(null);
@@ -36,7 +36,7 @@ export default function HomePage() {
   const [showConfirmation, setShowConfirmation] = useState(false);  // Nuevo estado para mostrar el modal
   const [resetTagsTrigger, setResetTagsTrigger] = useState(false);
   const handleSendMessageResolveRef = useRef(null);
-  const [isPdfRequestModalOpen, setIsPdfRequestModalOpen] = useState(false);
+  const [isPdfUploadModalOpen, setIsPdfUploadModalOpen] = useState(false);
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false); // Estado para el modal de opinión
   const [isProjectInfoOpen, setIsProjectInfoOpen] = useState(true);
   const [projectToDelete, setProjectToDelete] = useState(null);
@@ -60,6 +60,9 @@ export default function HomePage() {
 
   // HomePage.js
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const [noUser, setNoUser] = useState(false); // Estado para manejar el caso sin usuario
+
+
 
   let warningButtons = [];
 
@@ -78,6 +81,10 @@ export default function HomePage() {
       document.body.style.overflow = 'auto'; // Restablece el desplazamiento al desmontar
     };
   }, []);
+  
+
+
+
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -122,12 +129,14 @@ export default function HomePage() {
           console.error("Error fetching user data: ", error);
         }
       } else {
-        router.push("/");
+        setNoUser(true); // Actualizar el estado para mostrar el mensaje en lugar de redirigir
       }
     };
 
     fetchUserData();
   }, [router]);
+
+
 
   useEffect(() => {
     const fetchPDFs = async () => {
@@ -147,22 +156,25 @@ export default function HomePage() {
     fetchPDFs();
   }, []);
 
-  const checkAndShowOpinionModal = (data) => {
-    const lastShown = data.lastOpinionModalShown;
-    const currentDate = new Date();
-    const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
-  
-    if (!lastShown) {
-      // Si nunca se ha mostrado, lo mostramos ahora
-      setIsOpinionModalOpen(true);
-    } else {
-      const lastShownDate = new Date(lastShown.toDate()); // Convertir Timestamp a Date
-      if (currentDate - lastShownDate >= threeDaysInMs) {
-        // Han pasado 3 días o más, mostramos el modal
-        setIsOpinionModalOpen(true);
-      }
-    }
-  };
+  if (noUser) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+        <p className="text-lg text-center mb-6">
+          No has iniciado sesión. Por favor, vuelve a la página principal.
+        </p>
+        <button
+          onClick={() => router.push('/')}
+          className="py-2 px-4 bg-[#344e6f] text-white rounded-lg shadow-md hover:bg-gray-700 transition"
+        >
+          Ir a la Página Principal
+        </button>
+      </div>
+    );
+  }
+
+
+
+
 
   const handleDeleteProject = (projectId) => {
     // Buscar el proyecto por su ID para obtener el nombre
@@ -202,41 +214,35 @@ export default function HomePage() {
       console.error("Proyecto no seleccionado.");
       return { error: true, responseText: 'Proyecto no seleccionado.' };
     }
-
-    // Construir el cuerpo de la solicitud con las claves correctas
+  
+    // Limpiar los nombres de los documentos antes de enviar
+    const cleanedDocuments = nombreDocumentos.map(doc => doc.startsWith('userDoc:') ? doc.replace('userDoc:', '') : doc);
+  
     const body = {
       pregunta: question,
       etiquetas: projectInfo.map(tag => ({ clave: tag.name, contenido: tag.value })),
-      nombreDocumentos: nombreDocumentos, // Puede ser una matriz vacía o con documentos seleccionados
+      nombreDocumentos: cleanedDocuments, // Usar los documentos limpios
       threadId: threadId,
-      projectId: projectIdParam // Utiliza el projectId proporcionado o el del estado
+      projectId: projectIdParam,
     };
-
+  
     try {
-      // Detectar el origen actual
       const currentOrigin = window.location.origin;
-
-      // Definir las URLs de producción y desarrollo
       const productionURL = 'https://handleuserquery-kvebfg6w3q-uc.a.run.app';
       const localURL = 'http://localhost:5001/archcode-5ad81/us-central1/handleUserQuery';
-
-      // Seleccionar la URL adecuada
       const apiURL = currentOrigin.includes('localhost') ? localURL : productionURL;
-
+  
       const response = await fetch(apiURL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
-
+  
       if (!response.ok) {
         throw new Error('Error al obtener la respuesta del servidor.');
       }
-
+  
       const data = await response.json();
-      // Actualizar el threadId si es un nuevo hilo creado
       if (data.threadId && !threadId) {
         setThreadId(data.threadId);
       }
@@ -246,6 +252,7 @@ export default function HomePage() {
       return { error: true, responseText: 'Error al procesar la solicitud.' };
     }
   };
+  
 
   const handleSelectProject = (projectId) => {
     if (isProjectInfoUpdated) {
@@ -323,13 +330,14 @@ export default function HomePage() {
     setIsOpinionModalOpen(true);
   };
 
-  const openPdfRequestModal = () => {
-    setIsPdfRequestModalOpen(true);
+  const openPdfUploadModal = () => {
+    setIsPdfUploadModalOpen(true);
   };
-
-  const closePdfRequestModal = () => {
-    setIsPdfRequestModalOpen(false);
+  
+  const closePdfUploadModal = () => {
+    setIsPdfUploadModalOpen(false);
   };
+  
 
   const handleNewProject = () => {
     if (userData.projects && userData.projects.length >= 10) {
@@ -369,9 +377,17 @@ export default function HomePage() {
     // No llamamos a onSelect aquí
   };
 
-  const handleDocumentSelect = (docs) => {
-    setSelectedDocuments(docs);
-  };
+  const handleDocumentSelect = useCallback((docs) => {
+    const cleanedDocs = docs.map(doc => doc.startsWith('userDoc:') ? doc.replace('userDoc:', '') : doc);
+  
+    // Solo actualiza si los documentos son diferentes
+    setSelectedDocuments((prevDocs) => {
+      if (JSON.stringify(prevDocs) === JSON.stringify(cleanedDocs)) {
+        return prevDocs; // No actualizar si no hay cambios
+      }
+      return cleanedDocs;
+    });
+  }, []);
 
   // Dentro de createNewProject
   const createNewProject = async (projectContent) => {
@@ -909,6 +925,45 @@ export default function HomePage() {
     }
   };
 
+  const handleUploadSuccess = async () => {
+    try {
+      // Recarga los datos del usuario
+      const fetchUserData = async () => {
+        const user = auth.currentUser;
+        if (user) {
+          const docRef = doc(db, "Users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            console.error("No se encontraron datos de usuario");
+          }
+        }
+      };
+      await fetchUserData();
+  
+      // Recarga los PDFs disponibles
+      const fetchPDFs = async () => {
+        try {
+          const docRef = doc(db, "AvailablePDF", "Spain");
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setAvailablePDFs(docSnap.data().pdfArray);
+          } else {
+            console.error("No se encontraron PDFs disponibles");
+          }
+        } catch (error) {
+          console.error("Error al recargar PDFs:", error);
+        }
+      };
+      await fetchPDFs();
+    } catch (error) {
+      console.error("Error en handleUploadSuccess:", error);
+    }
+  };
+  
+  
+
   const handleWarningConfirm = async () => {
     setShowWarningModal(false);
   
@@ -1198,9 +1253,9 @@ export default function HomePage() {
   if (!userData) {
     return <div>Loading...</div>;
   }
-
   return (
     <div className="font-personalizada flex flex-col md:flex-row h-screen overflow-hidden">
+      {/* Barra lateral con ProjectSelector */}
       <div className="flex flex-col w-48 bg-[#F4EDE4]">
         <ProjectSelector
           projects={userData?.projects || []}
@@ -1211,46 +1266,41 @@ export default function HomePage() {
           isWaitingForResponse={isWaitingForResponse}
         />
       </div>
-  
-      <div className="flex flex-1 flex-col p-6 bg-[#FFFFFF] overflow-hidden">
-        {/* Barra superior con botones y menú */}
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          {/* Selector de Documentos */}
-          <div className="flex">
-            <DocumentSelector 
-              availablePDFs={availablePDFs} 
+
+      {/* Contenedor principal */}
+      <div className="flex flex-1 flex-col bg-white overflow-hidden">
+        {/* Barra superior con DocumentSelector, PDF Upload, etc. */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-start md:justify-between p-4 flex-shrink-0">
+          {/* DocumentSelector pegado a la izquierda */}
+          <div className="flex-1 md:flex-none pr-4">
+            <DocumentSelector
+              availablePDFs={availablePDFs}
               selectedRegion={selectedRegion}
               onRegionSelect={handleRegionSelect}
               onSelect={handleDocumentSelect}
+              userData={userData}
             />
           </div>
-  
-          {/* Contenedor flex para los botones y el UserMenu */}
-          <div className="flex items-center space-x-4">
-            {/* Botón para abrir el modal de solicitud de PDF */}
+
+          {/* Botones PDF Upload y Opinión, y UserMenu */}
+          <div className="flex items-center mt-4 md:mt-0 space-x-2 md:ml-auto">
             <button
-              onClick={openPdfRequestModal}
+              onClick={() => setIsPdfUploadModalOpen(true)}
               className="py-2 px-4 bg-[#344e6f] text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
             >
-              ¿No encuentras el pdf que necesitas?
+              Subir mi propio PDF
             </button>
-  
-            {/* Botón para abrir el modal de opinión */}
             <button
-              onClick={openOpinionModal}
+              onClick={() => setIsOpinionModalOpen(true)}
               className="py-2 px-4 bg-[#344e6f] text-white rounded-lg text-sm shadow-md hover:bg-gray-700"
             >
               Dejar una opinión
             </button>
-  
-            {/* UserMenu */}
-            <div className="ml-auto">
-              <UserMenu />
-            </div>
+            <UserMenu />
           </div>
         </div>
-  
-        {/* Envolver ProjectInfo en un contenedor con flex-shrink-0 */}
+
+        {/* Contenedor de ProjectInfo */}
         <div className="flex-shrink-0">
           <ProjectInfo 
             isOpen={isProjectInfoOpen}
@@ -1268,9 +1318,10 @@ export default function HomePage() {
             isProjectSaved={selectedProject && selectedProject.projectId !== null} // Nueva prop
           />
         </div>
-  
-        {/* Contenedor del Chat que ocupa el espacio restante y maneja su propio desbordamiento */}
-        <div className="flex flex-1 overflow-hidden">
+
+        {/* Área del Chat */}
+
+        <div className="flex-1 overflow-y-auto p-4">
           <Chat
             onSendMessage={handleSendMessage}
             onChatClick={handleChatClick}
@@ -1279,23 +1330,25 @@ export default function HomePage() {
             onUpdateProjectInfo={handleUpdateProjectInfo}
             onSaveConversation={handleSaveConversation}
             initialMessages={initialMessages}
-            onFeedback={handleFeedback} // Pasamos la función al componente Chat
+            onFeedback={handleFeedback}
             isWaitingForResponse={isWaitingForResponse}
             onStartWaitingResponse={() => setIsWaitingForResponse(true)}
             onEndWaitingResponse={() => setIsWaitingForResponse(false)}
           />
         </div>
+
       </div>
-  
+
       {/* Modales */}
       {showConfirmation && (
-        <ConfirmationModal 
+        <ConfirmationModal
           message="¿Estás seguro de que quieres crear un nuevo proyecto sin guardar el actual? Se podría perder información."
           onConfirm={handleConfirmNewProject}
+
         />
       )}
       {showConfirmationModal && (
-        <ConfirmationModal 
+        <ConfirmationModal
           message="Tienes cambios sin guardar en el proyecto actual. ¿Deseas continuar sin guardar?"
           onConfirm={handleConfirmChangeProject}
         />
@@ -1312,17 +1365,14 @@ export default function HomePage() {
           buttons={warningButtons}
         />
       )}
-      {isPdfRequestModalOpen && (
-        <PdfRequestModal onClose={closePdfRequestModal} />
+      {isPdfUploadModalOpen && (
+        <PdfUploadModal onClose={() => setIsPdfUploadModalOpen(false)} onUploadSuccess={() => {}} />
       )}
       {isOpinionModalOpen && (
-        <OpinionModal onClose={closeOpinionModal} />
+        <OpinionModal onClose={() => setIsOpinionModalOpen(false)} />
       )}
       {showAlertModal && (
-        <AlertModal
-          message={alertMessage}
-          onClose={() => setShowAlertModal(false)}
-        />
+        <AlertModal message={alertMessage} onClose={() => setShowAlertModal(false)} />
       )}
     </div>
   );
