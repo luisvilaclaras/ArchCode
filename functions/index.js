@@ -1,12 +1,64 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const axios = require('axios');
+const Busboy = require('busboy');
+const { google } = require('googleapis');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
 admin.initializeApp();
 
-const ASSISTANT_ID = "asst_sVAovRcBhXRmj9vjAiTHtQRa";
-const apiKey = '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'; // Reemplaza con tu clave de API de OpenAI
+const OPENAI_APIKEY = "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";
+const OPENAI_ASSISTANT_ID = "asst_sVAovRcBhXRmj9vjAiTHtQRa";
+const OPENAI_ORGANIZATION_ID = "org-4sjqDW4vm1ngWOTSumkb3PgZ";
+
 const db = admin.firestore();
+
+const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
+const SCOPES = ['https://www.googleapis.com/auth/drive'];
+
+let drive;
+
+// Función para inicializar la autenticación y el cliente de Google Drive
+async function initializeDriveClient() {
+  const auth = new google.auth.GoogleAuth({
+    keyFile: SERVICE_ACCOUNT_FILE,
+    scopes: SCOPES,
+  });
+
+  drive = google.drive({ version: 'v3', auth });
+
+  console.log('Cliente de Google Drive inicializado');
+}
+
+async function getOrCreateFolder(folderName) {
+  // Buscar la carpeta por nombre
+  const response = await drive.files.list({
+    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}'`,
+    fields: 'files(id, name)',
+    spaces: 'drive',
+  });
+
+  if (response.data.files.length > 0) {
+    console.log(`Carpeta "${folderName}" encontrada, ID: ${response.data.files[0].id}`);
+    return response.data.files[0].id;
+  } else {
+    // Crear la carpeta si no existe
+    const fileMetadata = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+    };
+
+    const folder = await drive.files.create({
+      resource: fileMetadata,
+      fields: 'id',
+    });
+
+    console.log(`Carpeta "${folderName}" creada, ID: ${folder.data.id}`);
+    return folder.data.id;
+  }
+}
 
 // Función para crear un nuevo hilo
 async function createThread() {
@@ -23,7 +75,7 @@ async function createThread() {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${apiKey}`,
+                    Authorization: `Bearer ${OPENAI_APIKEY}`,
                     'Content-Type': 'application/json',
                     'OpenAI-Beta': 'assistants=v2'
                 }
@@ -47,7 +99,7 @@ async function sendMessage(threadId, content) {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${apiKey}`,
+                    Authorization: `Bearer ${OPENAI_APIKEY}`,
                     'Content-Type': 'application/json',
                     'OpenAI-Beta': 'assistants=v2'
                 }
@@ -66,7 +118,7 @@ async function startRun(threadId) {
         const response = await axios.post(
             `https://api.openai.com/v1/threads/${threadId}/runs`,
             {
-                assistant_id: ASSISTANT_ID,
+                assistant_id: OPENAI_ASSISTANT_ID,
                 model: "gpt-4o-mini",
                 tools: [{ "type": "file_search" }],
                 truncation_strategy: {
@@ -76,7 +128,7 @@ async function startRun(threadId) {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${apiKey}`,
+                    Authorization: `Bearer ${OPENAI_APIKEY}`,
                     'Content-Type': 'application/json',
                     'OpenAI-Beta': 'assistants=v2'
                 }
@@ -91,8 +143,8 @@ async function startRun(threadId) {
 
 // Función para esperar a que el run se complete
 async function waitForRunCompletion(threadId, runId) {
-    const MAX_POLLING_ATTEMPTS = 30; // Número máximo de intentos
-    const POLLING_INTERVAL_MS = 2000; // Intervalo entre intentos en milisegundos (2 segundos)
+    const MAX_POLLING_ATTEMPTS = 30; 
+    const POLLING_INTERVAL_MS = 2000; 
 
     for (let attempt = 0; attempt < MAX_POLLING_ATTEMPTS; attempt++) {
         try {
@@ -100,7 +152,7 @@ async function waitForRunCompletion(threadId, runId) {
                 `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
                 {
                     headers: {
-                        Authorization: `Bearer ${apiKey}`,
+                        Authorization: `Bearer ${OPENAI_APIKEY}`,
                         'Content-Type': 'application/json',
                         'OpenAI-Beta': 'assistants=v2'
                     }
@@ -111,11 +163,10 @@ async function waitForRunCompletion(threadId, runId) {
             console.log(`Estado del run (${runId}): ${status}`);
 
             if (status === 'completed') {
-                return; // El run se ha completado
+                return; 
             } else if (status === 'failed') {
                 throw new Error('El run ha fallado.');
             } else {
-                // El run está en estado 'pending' o 'running'
                 await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL_MS));
             }
         } catch (error) {
@@ -134,7 +185,7 @@ async function getLastAssistantMessage(threadId, runId) {
             `https://api.openai.com/v1/threads/${threadId}/messages`,
             {
                 headers: {
-                    Authorization: `Bearer ${apiKey}`,
+                    Authorization: `Bearer ${OPENAI_APIKEY}`,
                     'Content-Type': 'application/json',
                     'OpenAI-Beta': 'assistants=v2'
                 }
@@ -143,7 +194,6 @@ async function getLastAssistantMessage(threadId, runId) {
 
         console.log('Respuesta completa de mensajes:', JSON.stringify(response.data, null, 2));
 
-        // Filtrar los mensajes del asistente
         const messages = response.data.data;
         const assistantMessages = messages.filter(msg => msg.role === 'assistant' && msg.run_id === runId);
 
@@ -165,8 +215,6 @@ async function getLastAssistantMessage(threadId, runId) {
     }
 }
 
-
-
 // Función principal handleUserQuery con middleware CORS aplicado correctamente
 exports.handleUserQuery = onRequest(
     async (req, res) => {
@@ -179,7 +227,6 @@ exports.handleUserQuery = onRequest(
         res.set('Access-Control-Allow-Headers', 'Content-Type');
         res.set('Access-Control-Max-Age', '3600');
         if (req.method === 'OPTIONS') {
-
             return res.status(204).send('');
         }
 
@@ -202,9 +249,7 @@ exports.handleUserQuery = onRequest(
             });
         }
 
-        // Convertir el array de nombres de documentos en una cadena
         const documentosString = nombreDocumentos.join(', ');
-
         const etiquetasString = etiquetas.map(etiqueta => `${etiqueta.clave}: ${etiqueta.contenido}`).join(', ');
 
         const query = `
@@ -213,6 +258,7 @@ exports.handleUserQuery = onRequest(
             Bajo ningun concepto debes referenciar o usar un documento que no sea uno de los seleccionados.
             Realiza cálculos si es necesario, usando datos y normas de los documentos.
             Escribe una respuesta clara y precisa, terminando con una referencia al documento en cuestión y la parte importante. No hace falta hacer un resmuen al final.
+            Cuando creas que sea necesario, pregunta al usuario si quiere que el asistente concrete más en algún punto de la respuesta anterior.
             Ejemplo:
             Pregunta: ¿Cuál es el requerimiento de aislamiento térmico para paredes exteriores en un clima frío?
             Respuesta: El requerimiento es [detalles específicos]. 
@@ -220,7 +266,7 @@ exports.handleUserQuery = onRequest(
             "[nombre_pdf] - Sección 4.2, Aislamiento Térmico, Climas Fríos"
             "[cita textualmente la parte de donde hayas sacado la información, en cursiva. No te inventes la frase]"
             La pregunta en cuestión: ${pregunta}
-`;
+        `;
 
         let newThreadId = threadId;
 
@@ -240,17 +286,17 @@ exports.handleUserQuery = onRequest(
                 }
             }
 
-            // Enviar el mensaje completo con toda la información al asistente
+            // Enviar el mensaje completo al asistente
             await sendMessage(newThreadId, query);
 
-            // Iniciar el run sin instrucciones adicionales
+            // Iniciar el run
             const runId = await startRun(newThreadId);
             console.log('Run iniciado:', runId);
 
             // Esperar a que el run se complete
             await waitForRunCompletion(newThreadId, runId);
 
-            // Ahora podemos obtener el último mensaje del asistente, pasando el runId
+            // Obtener el último mensaje del asistente
             const respuesta = await getLastAssistantMessage(newThreadId, runId);
             console.log('Última respuesta del asistente:', respuesta);
             return res.status(200).json({ respuesta, threadId: newThreadId });
@@ -260,7 +306,6 @@ exports.handleUserQuery = onRequest(
         }
 
 });
-
 
 // Nueva función generateAdditionalTags
 exports.generateAdditionalTags = onRequest(
@@ -275,7 +320,6 @@ exports.generateAdditionalTags = onRequest(
         res.set('Access-Control-Max-Age', '3600');
 
         if (req.method === 'OPTIONS') {
-
             return res.status(204).send('');
         }
 
@@ -299,7 +343,6 @@ exports.generateAdditionalTags = onRequest(
         }
 
         try {
-            // Construir el prompt para el modelo
             const prompt = `
 Teniendo en cuenta las siguientes etiquetas actuales del proyecto:
 
@@ -335,7 +378,7 @@ Ejemplo de salida:
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Authorization': `Bearer ${OPENAI_APIKEY}`
                     }
                 }
             );
@@ -344,10 +387,8 @@ Ejemplo de salida:
 
             console.log('Respuesta del modelo:', completion);
 
-            // Limpiar la respuesta eliminando bloques de código y caracteres innecesarios
             const cleanedCompletion = completion.replace(/```json\s*|```/g, '').trim();
 
-            // Intentar parsear la respuesta como JSON
             let etiquetasAdicionales;
             try {
                 etiquetasAdicionales = JSON.parse(cleanedCompletion);
@@ -369,3 +410,165 @@ Ejemplo de salida:
         }
     
 });
+exports.uploadPdf = onRequest({ maxBodySize: '20mb' }, async (req, res) => {
+    console.log('Inicio de la función uploadPdf');
+
+    // Manejo de CORS
+    const allowedOrigins = [
+      'https://archcode.io',
+      'http://localhost:3000',
+      'https://archcode-5ad81--archcode-5-nov-trcybw8t.web.app',
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+    } else {
+      res.set('Access-Control-Allow-Origin', '');
+    }
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+
+    if (req.method === 'OPTIONS') {
+      return res.status(204).send('');
+    }
+
+    if (req.method !== 'POST') {
+      return res.status(405).send('Método no permitido');
+    }
+
+    // Verificar el token de autenticación
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).send('No autorizado');
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+
+    let uid;
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      uid = decodedToken.uid;
+      console.log('Token verificado correctamente, UID:', uid);
+    } catch (error) {
+      console.error('Error al verificar el token:', error);
+      return res.status(401).send('Token inválido');
+    }
+
+    try {
+      const busboy = Busboy({ headers: req.headers });
+      let fileBuffer = Buffer.from('');
+      let fileName = '';
+      let mimeType = '';
+
+      busboy.on('file', (fieldname, file, info) => {
+        fileName = info.filename;
+        mimeType = info.mimeType;
+
+        file.on('data', (data) => {
+          fileBuffer = Buffer.concat([fileBuffer, data]);
+        });
+      });
+
+      busboy.on('finish', async () => {
+        if (mimeType !== 'application/pdf') {
+          return res.status(400).send('El archivo debe ser un PDF');
+        }
+
+        // Inicializar el cliente de Google Drive si aún no se ha hecho
+        if (!drive) {
+          await initializeDriveClient();
+        }
+
+        // Obtener o crear la carpeta de PDFs en Google Drive
+        const pdfsFolderId = await getOrCreateFolder('pdfs_uploaded');
+
+        // Crear un archivo temporal para el PDF
+        const tempPdfPath = path.join(os.tmpdir(), fileName);
+        fs.writeFileSync(tempPdfPath, fileBuffer);
+
+        try {
+          // Subir el archivo PDF a Google Drive
+          const pdfFileMetadata = {
+            name: fileName,
+            parents: [pdfsFolderId],
+          };
+          const pdfMedia = {
+            mimeType: 'application/pdf',
+            body: fs.createReadStream(tempPdfPath),
+          };
+
+          const pdfDriveResponse = await drive.files.create({
+            resource: pdfFileMetadata,
+            media: pdfMedia,
+            fields: 'id, webViewLink, webContentLink',
+          });
+
+          console.log('Archivo PDF subido a Google Drive, file_id:', pdfDriveResponse.data.id);
+
+          // Eliminar el archivo temporal
+          fs.unlinkSync(tempPdfPath);
+
+          // Añadir una nueva entrada en la colección 'Reviews'
+          const now = new Date();
+          const day = String(now.getDate()).padStart(2, '0');
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const year = now.getFullYear();
+
+          const type = `pdf_uploaded-${day}-${month}-${year}`;
+
+          const reviewData = {
+            content: pdfDriveResponse.data.id,
+            type: type,
+            userId: uid,
+            fileName: fileName,
+            webViewLink: pdfDriveResponse.data.webViewLink,
+            webContentLink: pdfDriveResponse.data.webContentLink,
+          };
+
+          const userRef = admin.firestore().collection('Users').doc(uid);
+          await admin.firestore().runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+
+            if (!userDoc.exists) {
+              throw new Error('Usuario no encontrado');
+            }
+
+            const userData = userDoc.data();
+            console.log("Campo uploadedPdfs antes de la actualización:", userData.uploadedPdfs);
+
+            // Asegurarse de que uploadedPdfs es un arreglo
+            const uploadedPdfs = Array.isArray(userData.uploadedPdfs) ? userData.uploadedPdfs : [];
+
+            uploadedPdfs.push({
+              name: fileName,
+              enabled: false,
+            });
+
+            transaction.update(userRef, { uploadedPdfs });
+          });
+
+          console.log('Documento del usuario actualizado en la colección Users');
+
+          await admin.firestore().collection('Reviews').add(reviewData);
+          console.log('Nueva entrada añadida a la colección Reviews:', reviewData);
+
+          return res.status(200).json({
+            message: 'Archivo PDF subido con éxito',
+            pdfFileId: pdfDriveResponse.data.id,
+            pdfWebViewLink: pdfDriveResponse.data.webViewLink,
+            pdfWebContentLink: pdfDriveResponse.data.webContentLink,
+          });
+        } catch (driveError) {
+          console.error('Error al subir el archivo a Google Drive:', driveError);
+          return res.status(500).send('Error al subir el archivo a Google Drive');
+        }
+      });
+
+      busboy.end(req.rawBody);
+    } catch (error) {
+      console.error('Error al procesar el archivo:', error);
+      return res.status(500).send('Error al procesar el archivo');
+    }
+});
+
